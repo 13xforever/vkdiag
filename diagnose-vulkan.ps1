@@ -1,6 +1,10 @@
 #!/bin/pwsh
 
-param([switch]$norestart, [switch]$autofix)
+param(
+    [switch]$norestart,
+    [switch]$autofix,
+    [switch]$cleanexplicitreg
+)
 
 # use manual checks so you can get in a good state instead of simply failing when run through Explorer context menu
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]"Administrator")
@@ -8,6 +12,10 @@ $argList = "-ExecutionPolicy RemoteSigned -File $PSCommandPath -norestart"
 if ($autofix)
 {
     $argList = "$argList -autofix"
+}
+if ($cleanexplicitreg)
+{
+    $argList = "$argList -cleanexplicitreg"
 }
 
 function Elevate-Context
@@ -35,6 +43,10 @@ if (-not $is64bit)
     Write-Error "This script is only intended for use with 64-bit OS"
     break
 }
+
+$hasBrokenEntries = $false
+$hasExplicitDriverEntries = $false
+$properDriverEntries = $false
 
 Clear-Host
 $osInfo = Get-CimInstance -Class CIM_OperatingSystem | Select-Object Caption, Version
@@ -127,6 +139,7 @@ foreach ($gpuGuid in $gpus)
         }
         if ($registeredVulkanDevice)
         {
+            $properDriverEntries = $true
             Write-Host "`t`t`tValid Vulkan registration"
         }
         else
@@ -163,8 +176,20 @@ foreach ($node in @('', '\WOW6432Node'))
         Write-Host "`tChecking explicit Vulkan driver entries..."
         foreach ($prop in $key.Property)
         {
-            if (Test-Path -LiteralPath $prop)
+            if ($cleanexplicitreg)
             {
+                if (-not $isAdmin)
+                {
+                    Elevate-Context
+                    break
+                }
+
+                Remove-ItemProperty -LiteralPath $keyPath -Name $prop
+                Write-Host "`t`t$prop`: removed"
+            }
+            elseif (Test-Path -LiteralPath $prop)
+            {
+                $hasExplicitDriverEntries = $true
                 $state = "enabled"
                 if ((Get-ItemPropertyValue $keyPath -Name $prop) -eq 1)
                 {
@@ -174,7 +199,6 @@ foreach ($node in @('', '\WOW6432Node'))
             }
             else
             {
-                Write-Host "`t`t$prop`: BROKEN"
                 if ($autofix)
                 {
                     if (-not $isAdmin)
@@ -184,6 +208,12 @@ foreach ($node in @('', '\WOW6432Node'))
                     }
                
                     Remove-ItemProperty -LiteralPath $keyPath -Name $prop
+                    Write-Host "`t`t$prop`: removed"
+                }
+                else
+                {
+                    $hasBrokenEntries = $true
+                    Write-Host "`t`t$prop`: BROKEN"
                 }
             }
         }
@@ -202,7 +232,6 @@ foreach ($node in @('', '\WOW6432Node'))
             }
             else
             {
-                Write-Host "`t`t$($name): BROKEN"
                 if ($autofix)
                 {
                     if (-not $isAdmin)
@@ -211,10 +240,54 @@ foreach ($node in @('', '\WOW6432Node'))
                         break
                     }
                     Remove-ItemProperty -LiteralPath $keyPath -Name $prop
+                    Write-Host "`t`t$($name): removed"
+                }
+                else
+                {
+                    $hasBrokenEntries = $true
+                    Write-Host "`t`t$($name): BROKEN"
                 }
             }
         }
     }
 }
 
-Pause
+if ($hasExplicitDriverEntries -or $hasBrokenEntries)
+{
+    $prompt = "`nWhat would you like to do?`n"
+    if ($hasBrokenEntries)
+    {
+        $prompt = "$prompt[f] Fix broken entries`n"
+    }
+    if ($hasExplicitDriverEntries)
+    {
+        $prompt = "$prompt[c] Clean explicit driver registration`n"
+    }
+    if ($hasExplicitDriverEntries -and $hasBrokenEntries)
+    {
+        $prompt = "$prompt[a] All of the above`n"
+    }
+    $prompt = "$prompt[n] Do nothing (default)`n"
+    $choice = Read-Host -Prompt $prompt
+    $tryToFix = $true
+    switch ($choice)
+    {
+        'a' { $argList = "$argList -autofix -cleanexplicitreg" }
+        'f' { $argList = "$argList -autofix" }
+        'c' { $argList = "$argList -cleanexplicitreg" }
+        Default { $tryToFix = $false }
+    }
+    if ($tryToFix)
+    {
+        Elevate-Context
+        break
+    }
+    else
+    {
+        Pause
+    }
+}
+else
+{
+    Pause
+}
