@@ -81,6 +81,11 @@ if ($gpus.Length -gt 1)
     $suffix = 's'
 }
 Write-Host "Found $($gpus.Length) active GPU$($suffix):"
+# Computer\HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Video\{47F997B3-03D7-11EB-A625-5CF370691F26}\0000
+# VulkanDriverName = C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_feed726c6560f7a7\nv-vk64.json
+# VulkanDriverNameWoW = C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_feed726c6560f7a7\nv-vk32.json
+# VulkanImplicitLayers = C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_feed726c6560f7a7\nv-vk64.json
+# VulkanImplicitLayersWow = C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_feed726c6560f7a7\nv-vk32.json
 foreach ($gpuGuid in $gpus)
 {
     $gpuEntryPath = "Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Video\$gpuGuid"
@@ -89,15 +94,32 @@ foreach ($gpuGuid in $gpus)
     $name = @($gpu.DeviceDesc -split ';')[-1]
     $driverVersion = $output.DriverVersion
     Write-Host "`t$name ($driverVersion)"
+    $key = Get-Item $gpuEntryPath
+    foreach ($output in $key.Property)
+    {
+        if ($output -notmatch '\d{4}')
+        {
+            continue
+        }
+
+        foreach ($prop in @('VulkanDriverName', 'VulkanDriverNameWoW', 'VulkanImplicitLayers', 'VulkanImplicitLayersWow'))
+        {
+            $propValue = Get-ItemPropertyValue -LiteralPath "$gpuEntryPath\$output" -Name $prop
+            if (-not (Test-Path -LiteralPath $propValue))
+            {
+                Write-Warning "`t`tInvalid value for output $output, property $($prop): $propValue"
+            }
+        }
+    }
 }
 
-Write-Host
-Write-Host "Checking Vulkan entries..."
 # Computer\HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\nvlddmkm
 #                                                               amdkmdag
 # ImagePath = \SystemRoot\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_feed726c6560f7a7\nvlddmkm.sys
 #             \SystemRoot\System32\DriverStore\FileRepository\u0355166.inf_amd64_b850e0f0c3bce936\B355483\amdkmdag.sys
 
+Write-Host
+Write-Host "Checking Vulkan entries..."
 # Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Khronos\Vulkan\Drivers
 # Computer\HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Khronos\Vulkan\Drivers
 # should be empty
@@ -105,7 +127,7 @@ foreach ($node in @('', '\WOW6432Node'))
 {
     if ($node -eq '')
     {
-        Write-Host "`t64-bit entries..."
+        Write-Host "64-bit entries..."
     }
     else
     {
