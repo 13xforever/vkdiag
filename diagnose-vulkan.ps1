@@ -78,7 +78,7 @@ foreach ($entry in $registeredGpus)
         else
         {
             $item = Get-ItemProperty -LiteralPath "$gpuEntryPath\Video"
-            if ($item.Service -ine 'BasicDisplay')
+            if (@('BasicDisplay', 'WUDFRd') -inotcontains $item.Service)
             {
                 $name = @($item.DeviceDesc -split ';')[-1]
                 Write-Warning "Found inactive GPU entry: $name"
@@ -124,17 +124,20 @@ foreach ($gpuGuid in $gpus)
         $registeredVulkanDevice = $false
         foreach ($prop in @('VulkanDriverName', 'VulkanDriverNameWoW', 'VulkanImplicitLayers', 'VulkanImplicitLayersWow'))
         {
-            $propValue = Get-ItemPropertyValue -LiteralPath "$gpuEntryPath\$output" -Name $prop
-            if (Test-Path -LiteralPath $propValue)
+            if ((Get-Item -LiteralPath "$gpuEntryPath\$output").Property -contains $prop)
             {
-                if ($prop.StartsWith('VulkanDriver'))
+                $propValue = Get-ItemPropertyValue -LiteralPath "$gpuEntryPath\$output" -Name $prop
+                if (Test-Path -LiteralPath $propValue)
                 {
-                    $registeredVulkanDevice = $true
+                    if ($prop.StartsWith('VulkanDriver'))
+                    {
+                        $registeredVulkanDevice = $true
+                    }
                 }
-            }
-            else
-            {
-                Write-Host "`t`t`tInvalid value for property $($prop): $propValue"
+                else
+                {
+                    Write-Host "`t`t`tInvalid value for property $($prop): $propValue"
+                }
             }
         }
         if ($registeredVulkanDevice)
