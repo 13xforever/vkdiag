@@ -4,15 +4,15 @@ param([switch]$norestart, [switch]$autofix)
 
 # use manual checks so you can get in a good state instead of simply failing when run through Explorer context menu
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]"Administrator")
+$argList = "-ExecutionPolicy RemoteSigned -File $PSCommandPath -norestart"
+if ($autofix)
+{
+    $argList = "$argList -autofix"
+}
 
 function Elevate-Context
 {
     Write-Host "Restarting with elevated permissions..."
-    $argList = "$PSCommandPath -norestart"
-    if ($autofix)
-    {
-        $argList = $"$argList -autofix"
-    }
     Start-Process pwsh -Verb runAs -ArgumentList $argList
     break
 }
@@ -24,14 +24,7 @@ if ($PSVersionTable.PSVersion.Major -lt 6)
     if (-not $norestart)
     {
         Write-Host "Trying to restart..."
-        if ($autofix)
-        {
-            & pwsh $PSCommandPath -norestart -autofix
-        }
-        else
-        {
-            & pwsh $PSCommandPath -norestart
-        }
+        Start-Process pwsh -Verb open -ArgumentList $argList
         break
     }
 }
@@ -223,3 +216,5 @@ foreach ($node in @('', '\WOW6432Node'))
         }
     }
 }
+
+Pause
