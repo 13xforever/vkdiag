@@ -1,6 +1,6 @@
 #!/bin/pwsh
 
-param([switch]$norestart)
+param([switch]$norestart, [switch]$autofix)
 
 # use manual checks so you can get in a good state instead of simply failing when run through Explorer context menu
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]"Administrator")
@@ -8,7 +8,12 @@ $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIden
 function Elevate-Context
 {
     Write-Host "Restarting with elevated permissions..."
-    Start-Process pwsh -Verb runAs -ArgumentList "$PSCommandPath -norestart"
+    $argList = "$PSCommandPath -norestart"
+    if ($autofix)
+    {
+        $argList = $"$argList -autofix"
+    }
+    Start-Process pwsh -Verb runAs -ArgumentList $argList
     break
 }
 
@@ -19,7 +24,14 @@ if ($PSVersionTable.PSVersion.Major -lt 6)
     if (-not $norestart)
     {
         Write-Host "Trying to restart..."
-        & pwsh $PSCommandPath -norestart
+        if ($autofix)
+        {
+            & pwsh $PSCommandPath -norestart -autofix
+        }
+        else
+        {
+            & pwsh $PSCommandPath -norestart
+        }
         break
     }
 }
@@ -94,21 +106,39 @@ foreach ($gpuGuid in $gpus)
     $name = @($gpu.DeviceDesc -split ';')[-1]
     $driverVersion = $output.DriverVersion
     Write-Host "`t$name ($driverVersion)"
-    $key = Get-Item $gpuEntryPath
-    foreach ($output in $key.Property)
+    $keys = @(Get-ChildItem $gpuEntryPath)
+    foreach ($subkey in $keys)
     {
+        $output = Split-Path $subkey.Name -Leaf
         if ($output -notmatch '\d{4}')
         {
             continue
         }
 
+        Write-Host "`t`tOutput $output"
+        $registeredVulkanDevice = $false
         foreach ($prop in @('VulkanDriverName', 'VulkanDriverNameWoW', 'VulkanImplicitLayers', 'VulkanImplicitLayersWow'))
         {
             $propValue = Get-ItemPropertyValue -LiteralPath "$gpuEntryPath\$output" -Name $prop
-            if (-not (Test-Path -LiteralPath $propValue))
+            if (Test-Path -LiteralPath $propValue)
             {
-                Write-Warning "`t`tInvalid value for output $output, property $($prop): $propValue"
+                if ($prop.StartsWith('VulkanDriver'))
+                {
+                    $registeredVulkanDevice = $true
+                }
             }
+            else
+            {
+                Write-Host "`t`t`tInvalid value for property $($prop): $propValue"
+            }
+        }
+        if ($registeredVulkanDevice)
+        {
+            Write-Host "`t`t`tValid Vulkan registration"
+        }
+        else
+        {
+            Write-Host "`t`t`tNot a Vulkan device"
         }
     }
 }
@@ -137,16 +167,32 @@ foreach ($node in @('', '\WOW6432Node'))
     $key = Get-Item -LiteralPath $keyPath
     if ($key.ValueCount -gt 0)
     {
-        if (-not $isAdmin)
-        {
-            Elevate-Context
-            break
-        }
-        Write-Host "`tCleaning explicit Vulkan driver entries..."
+        Write-Host "`tChecking explicit Vulkan driver entries..."
         foreach ($prop in $key.Property)
         {
-            Write-Host "`t`tRemoving $prop"
-            Remove-ItemProperty -LiteralPath $keyPath -Name $prop
+            if (Test-Path -LiteralPath $prop)
+            {
+                $state = "enabled"
+                if ((Get-ItemPropertyValue $keyPath -Name $prop) -eq 1)
+                {
+                    $state = "disabled"
+                }
+                Write-Host "`t`t$prop`: $state"
+            }
+            else
+            {
+                Write-Host "`t`t$prop`: BROKEN"
+                if ($autofix)
+                {
+                    if (-not $isAdmin)
+                    {
+                        Elevate-Context
+                        break
+                    }
+               
+                    Remove-ItemProperty -LiteralPath $keyPath -Name $prop
+                }
+            }
         }
     }
     $keyPath = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE$node\Khronos\Vulkan\ImplicitLayers"
@@ -159,17 +205,20 @@ foreach ($node in @('', '\WOW6432Node'))
             $name = Split-Path $prop -Leaf
             if ((Test-Path $prop) -and ($name.ToLower().EndsWith('.json')))
             {
-                Write-Host "`t`t$($name): OK"
+                Write-Host "`t`t$($name): ok"
             }
             else
             {
-                if (-not $isAdmin)
+                Write-Host "`t`t$($name): BROKEN"
+                if ($autofix)
                 {
-                    Elevate-Context
-                    break
+                    if (-not $isAdmin)
+                    {
+                        Elevate-Context
+                        break
+                    }
+                    Remove-ItemProperty -LiteralPath $keyPath -Name $prop
                 }
-                Write-Host "`t`t$($name): Removing"
-                Remove-ItemProperty -LiteralPath $keyPath -Name $prop
             }
         }
     }
