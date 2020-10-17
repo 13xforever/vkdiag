@@ -3,11 +3,13 @@
 param([switch]$norestart)
 
 # use manual checks so you can get in a good state instead of simply failing when run through Explorer context menu
-if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))  
-{  
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]"Administrator")
+
+function Elevate-Context
+{
     Write-Host "Restarting with elevated permissions..."
-    #    Start-Process pwsh -Verb runAs -ArgumentList "$PSCommandPath -norestart"
-    #    break
+    Start-Process pwsh -Verb runAs -ArgumentList "$PSCommandPath -norestart"
+    break
 }
 
 if ($PSVersionTable.PSVersion.Major -lt 6)
@@ -23,13 +25,19 @@ if ($PSVersionTable.PSVersion.Major -lt 6)
 }
 
 $is64bit = [Environment]::Is64BitOperatingSystem
-$isWin10 = [Environment]::OSVersion.Version.Major
 if (-not $is64bit)
 {
     Write-Error "This script is only intended for use with 64-bit OS"
     break
 }
 
+Clear-Host
+$osInfo = Get-CimInstance -Class CIM_OperatingSystem | Select-Object Caption, Version
+Write-Host "OS: $($osInfo.Caption)"
+Write-Host "Version: $($osInfo.Version)"
+
+Write-Host
+Write-Host "Enumerating GPUs..."
 # Computer\HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Video\{....}\Video
 # DeviceDesc = @oem33.inf,%nvidia_dev.1b06%;NVIDIA GeForce GTX 1080 Ti
 #              @oem60.inf,%nvidia_dev.2206%;NVIDIA GeForce RTX 3080
@@ -46,13 +54,13 @@ foreach ($entry in $registeredGpus)
     $gpuEntryPath = "Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Video\$gpuGuid"
     if (Test-Path "$gpuEntryPath\Video")
     {
-        $item = Get-ItemProperty -LiteralPath "$gpuEntryPath\Video"
         if (Test-Path "$gpuEntryPath\0000")
         {
-            $gpus += $item
+            $gpus += $gpuGuid
         }
         else
         {
+            $item = Get-ItemProperty -LiteralPath "$gpuEntryPath\Video"
             if ($item.Service -ine 'BasicDisplay')
             {
                 $name = @($item.DeviceDesc -split ';')[-1]
@@ -73,13 +81,74 @@ if ($gpus.Length -gt 1)
     $suffix = 's'
 }
 Write-Host "Found $($gpus.Length) active GPU$($suffix):"
-foreach ($gpu in $gpus)
+foreach ($gpuGuid in $gpus)
 {
+    $gpuEntryPath = "Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Video\$gpuGuid"
+    $gpu = Get-ItemProperty -LiteralPath "$gpuEntryPath\Video"
+    $output = Get-ItemProperty -LiteralPath "$gpuEntryPath\0000"
     $name = @($gpu.DeviceDesc -split ';')[-1]
-    Write-Host "`t$name"
+    $driverVersion = $output.DriverVersion
+    Write-Host "`t$name ($driverVersion)"
 }
+
+Write-Host
+Write-Host "Checking Vulkan entries..."
 # Computer\HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\nvlddmkm
 #                                                               amdkmdag
 # ImagePath = \SystemRoot\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_feed726c6560f7a7\nvlddmkm.sys
 #             \SystemRoot\System32\DriverStore\FileRepository\u0355166.inf_amd64_b850e0f0c3bce936\B355483\amdkmdag.sys
 
+# Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Khronos\Vulkan\Drivers
+# Computer\HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Khronos\Vulkan\Drivers
+# should be empty
+foreach ($node in @('', '\WOW6432Node'))
+{
+    if ($node -eq '')
+    {
+        Write-Host "`t64-bit entries..."
+    }
+    else
+    {
+        Write-Host "`32-bit entries..."
+    }
+    $keyPath = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE$node\Khronos\Vulkan\Drivers"
+    $key = Get-Item -LiteralPath $keyPath
+    if ($key.ValueCount -gt 0)
+    {
+        if (-not $isAdmin)
+        {
+            Elevate-Context
+            break
+        }
+        Write-Host "`tCleaning explicit Vulkan driver entries..."
+        foreach ($prop in $key.Property)
+        {
+            Write-Host "`t`tRemoving $prop"
+            Remove-ItemProperty -LiteralPath $keyPath -Name $prop
+        }
+    }
+    $keyPath = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE$node\Khronos\Vulkan\ImplicitLayers"
+    $key = Get-Item -LiteralPath $keyPath
+    if ($key.ValueCount -gt 0)
+    {
+        Write-Host "`tChecking implicit Vulkan layers..."
+        foreach ($prop in $key.Property)
+        {
+            $name = Split-Path $prop -Leaf
+            if ((Test-Path $prop) -and ($name.ToLower().EndsWith('.json')))
+            {
+                Write-Host "`t`t$($name): OK"
+            }
+            else
+            {
+                if (-not $isAdmin)
+                {
+                    Elevate-Context
+                    break
+                }
+                Write-Host "`t`t$($name): Removing"
+                Remove-ItemProperty -LiteralPath $keyPath -Name $prop
+            }
+        }
+    }
+}
