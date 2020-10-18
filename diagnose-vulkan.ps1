@@ -3,7 +3,8 @@
 param(
     [switch]$norestart,
     [switch]$autofix,
-    [switch]$cleanexplicitreg
+    [switch]$cleanExplicitReg,
+    [switch]$disableBadLayers
 )
 
 # use manual checks so you can get in a good state instead of simply failing when run through Explorer context menu
@@ -13,9 +14,13 @@ if ($autofix)
 {
     $argList = "$argList -autofix"
 }
-if ($cleanexplicitreg)
+if ($cleanExplicitReg)
 {
-    $argList = "$argList -cleanexplicitreg"
+    $argList = "$argList -cleanExplicitReg"
+}
+if ($disableBadLayers)
+{
+    $argList = "$argList -disableBadLayers"
 }
 
 function Elevate-Context
@@ -47,6 +52,7 @@ if (-not $is64bit)
 $hasBrokenEntries = $false
 $hasExplicitDriverEntries = $false
 $properDriverEntries = $false
+$hasIncompatibleLayers = $false
 
 Clear-Host
 $osInfo = Get-CimInstance -Class CIM_OperatingSystem | Select-Object Caption, Version
@@ -162,6 +168,7 @@ Write-Host "Checking Vulkan entries..."
 # Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Khronos\Vulkan\Drivers
 # Computer\HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Khronos\Vulkan\Drivers
 # should be empty
+$knownProblematicLayers = @('obs-vulkan64.json', 'MirillisActionVulkanLayer.json')
 foreach ($node in @('', '\WOW6432Node'))
 {
     if ($node -eq '')
@@ -173,82 +180,118 @@ foreach ($node in @('', '\WOW6432Node'))
         Write-Host "`32-bit entries..."
     }
     $keyPath = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE$node\Khronos\Vulkan\Drivers"
-    $key = Get-Item -LiteralPath $keyPath
-    if ($key.ValueCount -gt 0)
+    if (Test-Path -LiteralPath $keyPath)
     {
-        Write-Host "`tChecking explicit Vulkan driver entries..."
-        foreach ($prop in $key.Property)
+        $key = Get-Item -LiteralPath $keyPath
+        if ($key.ValueCount -gt 0)
         {
-            if ($cleanexplicitreg)
+            Write-Host "`tChecking explicit Vulkan driver entries..."
+            foreach ($prop in $key.Property)
             {
-                if (-not $isAdmin)
-                {
-                    Elevate-Context
-                    break
-                }
-
-                Remove-ItemProperty -LiteralPath $keyPath -Name $prop
-                Write-Host "`t`t$prop`: removed"
-            }
-            elseif (Test-Path -LiteralPath $prop)
-            {
-                $hasExplicitDriverEntries = $true
-                $state = "enabled"
-                if ((Get-ItemPropertyValue $keyPath -Name $prop) -eq 1)
-                {
-                    $state = "disabled"
-                }
-                Write-Host "`t`t$prop`: $state"
-            }
-            else
-            {
-                if ($autofix)
+                if ($cleanExplicitReg)
                 {
                     if (-not $isAdmin)
                     {
                         Elevate-Context
                         break
                     }
-               
+
                     Remove-ItemProperty -LiteralPath $keyPath -Name $prop
                     Write-Host "`t`t$prop`: removed"
                 }
+                elseif (Test-Path -LiteralPath $prop)
+                {
+                    $hasExplicitDriverEntries = $true
+                    $state = "enabled"
+                    if ((Get-ItemPropertyValue $keyPath -Name $prop) -eq 1)
+                    {
+                        $state = "disabled"
+                    }
+                    Write-Host "`t`t$prop`: $state"
+                }
                 else
                 {
-                    $hasBrokenEntries = $true
-                    Write-Host "`t`t$prop`: BROKEN"
+                    if ($autofix)
+                    {
+                        if (-not $isAdmin)
+                        {
+                            Elevate-Context
+                            break
+                        }
+               
+                        Remove-ItemProperty -LiteralPath $keyPath -Name $prop
+                        Write-Host "`t`t$prop`: removed"
+                    }
+                    else
+                    {
+                        $hasBrokenEntries = $true
+                        Write-Host "`t`t$prop`: BROKEN"
+                    }
                 }
             }
         }
     }
     $keyPath = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE$node\Khronos\Vulkan\ImplicitLayers"
-    $key = Get-Item -LiteralPath $keyPath
-    if ($key.ValueCount -gt 0)
+    if (Test-Path -LiteralPath $keyPath)
     {
-        Write-Host "`tChecking implicit Vulkan layers..."
-        foreach ($prop in $key.Property)
+        $key = Get-Item -LiteralPath $keyPath
+        if ($key.ValueCount -gt 0)
         {
-            $name = Split-Path $prop -Leaf
-            if ((Test-Path $prop) -and ($name.ToLower().EndsWith('.json')))
+            Write-Host "`tChecking implicit Vulkan layers..."
+            foreach ($prop in $key.Property)
             {
-                Write-Host "`t`t$($name): ok"
-            }
-            else
-            {
-                if ($autofix)
+                $name = Split-Path $prop -Leaf
+                $value = Get-ItemPropertyValue -LiteralPath $keyPath -Name $prop
+                if ((Test-Path $prop) -and ($name.ToLower().EndsWith('.json')))
                 {
-                    if (-not $isAdmin)
+                    if (($value -eq 0) -and ($knownProblematicLayers -contains $name))
                     {
-                        Elevate-Context
-                        break
+                        if ($disableBadLayers)
+                        {
+                            if (-not $isAdmin)
+                            {
+                                Elevate-Context
+                                break
+                            }
+
+                            Set-ItemProperty -LiteralPath $keyPath -Name $prop -Value 1
+                            Write-Host "`t`t$name`: potentially incompatible, disabled"
+                        }
+                        else
+                        {
+                            $hasIncompatibleLayers = $true
+                            Write-Host "`t`t$name`: potentially incompatible"
+                        }
                     }
-                    Remove-ItemProperty -LiteralPath $keyPath -Name $prop
-                    Write-Host "`t`t$($name): removed"
+                    else
+                    {
+                        if ($value -eq 0)
+                        {
+                            Write-Host "`t`t$($name): ok, enabled" 
+                        }
+                        else
+                        {
+                            Write-Host "`t`t$($name): ok, disabled" 
+                        }
+                    }
                 }
                 else
                 {
-                    $hasBrokenEntries = $true
-                    Write-Host "`t`t$($name): BROKEN"
+                    if ($autofix)
+                    {
+                        if (-not $isAdmin)
+                        {
+                            Elevate-Context
+                            break
+                        }
+                        Remove-ItemProperty -LiteralPath $keyPath -Name $prop
+                        Write-Host "`t`t$($name): removed"
+                    }
+                    else
+                    {
+                        $hasBrokenEntries = $true
+                        Write-Host "`t`t$($name): BROKEN"
+                    }
                 }
             }
         }
@@ -258,15 +301,23 @@ foreach ($node in @('', '\WOW6432Node'))
 if ($hasExplicitDriverEntries -or $hasBrokenEntries)
 {
     $prompt = "`nWhat would you like to do?`n"
-    if ($hasBrokenEntries)
-    {
-        $prompt = "$prompt[f] Fix broken entries`n"
-    }
+    $options = 0
     if ($hasExplicitDriverEntries)
     {
         $prompt = "$prompt[c] Clean explicit driver registration`n"
+        $options++
     }
-    if ($hasExplicitDriverEntries -and $hasBrokenEntries)
+    if ($hasIncompatibleLayers)
+    {
+        $prompt = "$prompt[d] Disable potentially incompatible layers`n"
+        $options++
+    }
+    if ($hasBrokenEntries)
+    {
+        $prompt = "$prompt[r] Remove broken entries`n"
+        $options++
+    }
+    if ($options -gt 1)
     {
         $prompt = "$prompt[a] All of the above`n"
     }
@@ -275,9 +326,10 @@ if ($hasExplicitDriverEntries -or $hasBrokenEntries)
     $tryToFix = $true
     switch ($choice)
     {
-        'a' { $argList = "$argList -autofix -cleanexplicitreg" }
-        'f' { $argList = "$argList -autofix" }
-        'c' { $argList = "$argList -cleanexplicitreg" }
+        'a' { $argList = "$argList -autofix -cleanExplicitReg -disableBadLayers" }
+        'r' { $argList = "$argList -autofix" }
+        'c' { $argList = "$argList -cleanExplicitReg" }
+        'd' { $argList = "$argList -disableBadLayers" }
         Default { $tryToFix = $false }
     }
     if ($tryToFix)
