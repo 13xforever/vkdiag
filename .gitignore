@@ -1,0 +1,9 @@
+# Specify filepatterns you want git to ignore.
+
+.idea/
+.vs/
+_Resharper.*/
+packages/
+bin/
+obj/
+*.suo
