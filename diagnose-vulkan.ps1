@@ -23,11 +23,14 @@ if ($disableBadLayers)
     $argList = "$argList -disableBadLayers"
 }
 
-function Elevate-Context
+function Request-ContextElevation
 {
-    Write-Host "Restarting with elevated permissions..."
-    Start-Process pwsh -Verb runAs -ArgumentList $argList
-    break
+    if (-not $isAdmin)
+    {
+        Write-Host "Restarting with elevated permissions..."
+        Start-Process pwsh -Verb runAs -ArgumentList $argList
+        exit
+    }
 }
 
 if ($PSVersionTable.PSVersion.Major -lt 6)
@@ -87,7 +90,7 @@ foreach ($entry in $registeredGpus)
             if (@('BasicDisplay', 'WUDFRd') -inotcontains $item.Service)
             {
                 $name = @($item.DeviceDesc -split ';')[-1]
-                Write-Warning "Found inactive GPU entry: $name"
+                Write-Host "Found inactive GPU entry: $name"
             }
         }
     }
@@ -157,7 +160,10 @@ foreach ($gpuGuid in $gpus)
         }
     }
 }
-
+if (-not $properDriverEntries)
+{
+    $cleanExplicitReg = $false
+}
 # Computer\HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\nvlddmkm
 #                                                               amdkmdag
 # ImagePath = \SystemRoot\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_feed726c6560f7a7\nvlddmkm.sys
@@ -190,12 +196,7 @@ foreach ($node in @('', '\WOW6432Node'))
             {
                 if ($cleanExplicitReg)
                 {
-                    if (-not $isAdmin)
-                    {
-                        Elevate-Context
-                        break
-                    }
-
+                    Request-ContextElevation
                     Remove-ItemProperty -LiteralPath $keyPath -Name $prop
                     Write-Host "`t`t$prop`: removed"
                 }
@@ -213,12 +214,7 @@ foreach ($node in @('', '\WOW6432Node'))
                 {
                     if ($autofix)
                     {
-                        if (-not $isAdmin)
-                        {
-                            Elevate-Context
-                            break
-                        }
-               
+                        Request-ContextElevation
                         Remove-ItemProperty -LiteralPath $keyPath -Name $prop
                         Write-Host "`t`t$prop`: removed"
                     }
@@ -248,12 +244,7 @@ foreach ($node in @('', '\WOW6432Node'))
                     {
                         if ($disableBadLayers)
                         {
-                            if (-not $isAdmin)
-                            {
-                                Elevate-Context
-                                break
-                            }
-
+                            Request-ContextElevation
                             Set-ItemProperty -LiteralPath $keyPath -Name $prop -Value 1
                             Write-Host "`t`t$name`: potentially incompatible, disabled"
                         }
@@ -279,11 +270,7 @@ foreach ($node in @('', '\WOW6432Node'))
                 {
                     if ($autofix)
                     {
-                        if (-not $isAdmin)
-                        {
-                            Elevate-Context
-                            break
-                        }
+                        Request-ContextElevation
                         Remove-ItemProperty -LiteralPath $keyPath -Name $prop
                         Write-Host "`t`t$($name): removed"
                     }
@@ -298,7 +285,12 @@ foreach ($node in @('', '\WOW6432Node'))
     }
 }
 
-if ($hasExplicitDriverEntries -or $hasBrokenEntries)
+if (-not $properDriverEntries)
+{
+    # if drivers are too old and used explicit vulkan driver registration, allow it
+    $hasExplicitDriverEntries = $false
+}
+if ($hasExplicitDriverEntries -or $hasBrokenEntries -or $hasIncompatibleLayers)
 {
     $prompt = "`nWhat would you like to do?`n"
     $options = 0
@@ -334,15 +326,8 @@ if ($hasExplicitDriverEntries -or $hasBrokenEntries)
     }
     if ($tryToFix)
     {
-        Elevate-Context
-        break
-    }
-    else
-    {
-        Pause
+        Request-ContextElevation
     }
 }
-else
-{
-    Pause
-}
+
+Pause
