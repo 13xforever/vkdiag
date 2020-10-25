@@ -108,14 +108,25 @@ namespace VkDiag
                 {
                     foreach (var osi in collection)
                     {
-                        Console.WriteLine($"OS: {osi.GetPropertyValue("Caption")}");
-                        Console.WriteLine($"Version: {osi.GetPropertyValue("Version")}");
+                        var osName = osi.GetPropertyValue("Caption") as string;
+                        var osVersion = osi.GetPropertyValue("Version") as string ?? "";
+                        var color = defaultFgColor;
+                        var status = "+";
+                        if (Version.TryParse(osVersion, out var osVer))
+                        {
+                            if (osVer.Major < 10)
+                                color = ConsoleColor.DarkYellow;
+                            else
+                                color = ConsoleColor.Green;
+                        }
+                        WriteLogLine(color, status, "OS: " + osName);
+                        WriteLogLine(color, status, "Version: " + osVersion);
                     }
                 }
             }
             catch
             {
-                Console.WriteLine("Failed to get OS information");
+                WriteLogLine(ConsoleColor.DarkYellow, "x", "Failed to get OS information");
             }
         }
 
@@ -178,6 +189,7 @@ namespace VkDiag
                             }
                         }
                     }
+                Console.WriteLine();
                 Console.WriteLine($"Found {gpuGuidList.Count} active GPU{(gpuGuidList.Count == 1 ? "": "s")}:");
                 foreach (var gpuGuid in inactiveGpuGuidList.Concat(gpuGuidList))
                     using (var gpuKey = videoKey.OpenSubKey(gpuGuid))
@@ -205,7 +217,7 @@ namespace VkDiag
                             var driverDate = "";
                             var outputList = gpuKey.GetSubKeyNames().Where(n => Regex.IsMatch(n, @"\d{4}")).ToList();
                             foreach (var output in outputList)
-                                using (var outputKey = gpuKey.OpenSubKey(output))
+                                using (var outputKey = gpuKey.OpenSubKey(output, autofix))
                                 {
                                     if (outputKey == null)
                                         continue;
@@ -262,6 +274,9 @@ namespace VkDiag
                                             catch
                                             {
                                                 fixedEverything = removedBroken = false;
+#if DEBUG
+                                                WriteLogLine(ConsoleColor.Red, "x", $"Failed to fix {outputKey} @{entry}");
+#endif
                                             }
                                         }
                                         else
@@ -306,6 +321,7 @@ namespace VkDiag
 
         private static void CheckVulkanMeta()
         {
+            Console.WriteLine();
             Console.WriteLine("Vulkan registration information:");
 
             var knownProblematicLayers = new HashSet<string>
@@ -319,7 +335,7 @@ namespace VkDiag
             var removedBroken = true;
             clear &= hasProperVulkanDrivers;
             foreach (var basePath in basePaths)
-                using (var driversKey = Registry.LocalMachine.OpenSubKey(Path.Combine(basePath, "Drivers")))
+                using (var driversKey = Registry.LocalMachine.OpenSubKey(Path.Combine(basePath, "Drivers"), autofix || clear))
                 {
                     if (driversKey == null)
                         continue;
@@ -340,6 +356,9 @@ namespace VkDiag
                                 catch
                                 {
                                     removedExplicitDriverReg = false;
+#if DEBUG
+                                    WriteLogLine(ConsoleColor.Red, "x", $"Failed to fix {driversKey} @{driverPath}");
+#endif
                                 }
                             }
                         }
@@ -356,6 +375,9 @@ namespace VkDiag
                                 catch
                                 {
                                     fixedEverything = removedBroken = false;
+#if DEBUG
+                                    WriteLogLine(ConsoleColor.Red, "x", $"Failed to fix {driversKey} @{driverPath}");
+#endif
                                 }
                             }
                             else
@@ -397,7 +419,7 @@ namespace VkDiag
                 var conflicts = false;
                 var disabledConflicts = true;
                 var layerInfoList = new List<(string path, bool broken, bool enabled)>();
-                using (var layerKey = Registry.LocalMachine.OpenSubKey(Path.Combine(basePath, layer + "Layers")))
+                using (var layerKey = Registry.LocalMachine.OpenSubKey(Path.Combine(basePath, layer + "Layers"), autofix || disableLayers))
                 {
                     if (layerKey == null)
                         continue;
@@ -421,6 +443,9 @@ namespace VkDiag
                                 catch
                                 {
                                     fixedEverything = removedBroken = false;
+#if DEBUG
+                                    WriteLogLine(ConsoleColor.Red, "x", $"Failed to fix {layerKey} @{layerPath}");
+#endif
                                 }
                             }
                             else
@@ -440,6 +465,9 @@ namespace VkDiag
                                 catch
                                 {
                                     disabledConflictingLayers = disabledConflicts = false;
+#if DEBUG
+                                    WriteLogLine(ConsoleColor.Red, "x", $"Failed to fix {layerKey} @{layerPath}");
+#endif
                                 }
                             }
                             else
