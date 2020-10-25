@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Management" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ILRepack" Version="2.0.18" GeneratePathProperty="true">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Mono.Options" Version="6.6.0.161" />
+  </ItemGroup>
+
+  <Target Name="MergeLibs" AfterTargets="Build" Condition="'$(Configuration)'=='Release'">
+    <Exec
+            Command="&quot;$(PkgILRepack)\tools\ILRepack.exe&quot; /targetplatform:v4 /wildcards /out:Packed\$(TargetFileName) $(TargetFileName) *.dll"
+            ConsoleToMSBuild="true"
+            WorkingDirectory="$(TargetDir)"
+    />
+  </Target>
+  
+</Project>
