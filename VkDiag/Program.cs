@@ -614,7 +614,12 @@ namespace VkDiag
                         libVer = ", v" + libVerInfo.FileVersion;
                 }
 
-                return $"{result} ({layer.Description ?? layer.Name}{libVer}, API v{layer.ApiVersion})";
+                var name = layer.Description ?? layer.Name;
+                if (name.EndsWith(" vulkan layer", StringComparison.OrdinalIgnoreCase))
+                    name = name.Substring(0, name.Length - (" vulkan layer".Length)).TrimEnd();
+                if (name.EndsWith(" layer", StringComparison.OrdinalIgnoreCase))
+                    name = name.Substring(0, name.Length - (" layer".Length)).TrimEnd();
+                return $"{result} ({name}{libVer}, API v{layer.ApiVersion})";
             }
             catch
 #if DEBUG
