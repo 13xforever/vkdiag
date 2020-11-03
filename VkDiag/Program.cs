@@ -5,9 +5,12 @@ using System.IO;
 using System.Linq;
 using System.Management;
 using System.Security.Principal;
+using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
 using Mono.Options;
+using VkDiag.POCOs;
 
 namespace VkDiag
 {
@@ -28,6 +31,12 @@ namespace VkDiag
         private static bool disabledConflictingLayers = true;
         private static bool removedExplicitDriverReg = true;
         private static bool fixedEverything = true;
+        
+        private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = new SnakeCasePolicy(),
+            WriteIndented = true,
+        };
         
         public static void Main(string[] args)
         {
@@ -495,7 +504,7 @@ namespace VkDiag
                     {
                         var color = ConsoleColor.Green;
                         var status = "+";
-                        var name = Path.GetFileName(layerPath);
+                        var name = GetLayerInfo(layerPath);
                         if (isEnabled)
                         {
                             if (isBroken)
@@ -582,6 +591,41 @@ namespace VkDiag
             Console.WriteLine("Press any key to exit the tool...");
             Console.ReadKey();
             Environment.Exit(0);
+        }
+
+        private static string GetLayerInfo(string layerPath)
+        {
+            var result = Path.GetFileName(layerPath); 
+            if (!File.Exists(layerPath))
+                return result;
+
+            try
+            {
+                var layerContent = File.ReadAllText(layerPath, Encoding.UTF8);
+                var regInfo = JsonSerializer.Deserialize<VkRegInfo>(layerContent, JsonOptions);
+                var layer = regInfo.Layer;
+                var baseDir = Path.GetDirectoryName(layerPath);
+                var layerImplLib = string.IsNullOrEmpty(layer.LibraryPath) ? null : Path.Combine(baseDir, layer.LibraryPath);
+                string libVer = null;
+                if (File.Exists(layerImplLib))
+                {
+                    var libVerInfo = FileVersionInfo.GetVersionInfo(layerImplLib);
+                    if (!string.IsNullOrEmpty(libVerInfo.FileVersion))
+                        libVer = ", v" + libVerInfo.FileVersion;
+                }
+
+                return $"{result} ({layer.Description ?? layer.Name}{libVer}, API v{layer.ApiVersion})";
+            }
+            catch
+#if DEBUG
+                (Exception e)
+#endif            
+            {
+#if DEBUG
+                WriteLogLine(ConsoleColor.Red, "x", e.ToString());
+#endif                
+                return result;
+            }
         }
     }
 }

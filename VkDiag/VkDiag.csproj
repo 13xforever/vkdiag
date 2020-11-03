@@ -14,14 +14,11 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Mono.Options" Version="6.6.0.161" />
+    <PackageReference Include="System.Text.Json" Version="4.7.2" />
   </ItemGroup>
 
   <Target Name="MergeLibs" AfterTargets="Build" Condition="'$(Configuration)'=='Release'">
-    <Exec
-            Command="&quot;$(PkgILRepack)\tools\ILRepack.exe&quot; /targetplatform:v4 /wildcards /out:Packed\$(TargetFileName) $(TargetFileName) *.dll"
-            ConsoleToMSBuild="true"
-            WorkingDirectory="$(TargetDir)"
-    />
+    <Exec Command="&quot;$(PkgILRepack)\tools\ILRepack.exe&quot; /targetplatform:v4 /wildcards /out:Packed\$(TargetFileName) $(TargetFileName) *.dll" ConsoleToMSBuild="true" WorkingDirectory="$(TargetDir)" />
   </Target>
   
 </Project>
