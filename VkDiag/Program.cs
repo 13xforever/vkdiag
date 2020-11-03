@@ -35,7 +35,14 @@ namespace VkDiag
         private static bool disabledConflictingLayers = true;
         private static bool removedExplicitDriverReg = true;
         private static bool fixedEverything = true;
-        
+
+        private static readonly Dictionary<string, Version> KnownProblematicLayers = new Dictionary<string, Version>
+        {
+            ["MirillisActionVulkanLayer.json"] = null,
+            ["obs-vulkan64.json"] = new Version(1, 2, 2, 0),
+            ["obs-vulkan32.json"] = new Version(1, 2, 2, 0),
+        };
+
         private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = new SnakeCasePolicy(),
@@ -387,13 +394,7 @@ namespace VkDiag
             Console.WriteLine();
             Console.WriteLine("Vulkan registration information:");
 
-            var knownProblematicLayers = new HashSet<string>
-            {
-                "MirillisActionVulkanLayer.json",
-                "obs-vulkan64.json",
-            };
             var basePaths = new[] {@"SOFTWARE\Khronos\Vulkan", @"SOFTWARE\WOW6432Node\Khronos\Vulkan"};
-            
             var broken = false;
             var removedBroken = true;
             clear &= hasProperVulkanDrivers;
@@ -551,7 +552,9 @@ namespace VkDiag
                         else if (isEnabled)
                         {
                             var layerJsonName = Path.GetFileName(layerPath);
-                            if (knownProblematicLayers.Contains(layerJsonName))
+                            var layerInfo = GetLayerInfo(layerPath);
+                            if (KnownProblematicLayers.TryGetValue(layerJsonName, out var minLayerVersion)
+                                && (layerInfo.dllVer == null || minLayerVersion == null || layerInfo.dllVer < minLayerVersion))
                             {
                                 isEnabled = !disableLayer(layerPath);
                                 isConflicting = true;
@@ -574,15 +577,14 @@ namespace VkDiag
                                     WriteLogLine(ConsoleColor.Cyan, "i", $"    Found duplicate layer {layerJsonName}");
 #endif
                                     var dupLayer = layerInfoList[idx];
-                                    var curLayerInfo = GetLayerInfo(layerPath);
                                     var dupLayerInfo = GetLayerInfo(dupLayer.path);
                                     var curIsNewer = true;
                                     var defVer = new Version(0, 0);
 
-                                    curIsNewer = (curLayerInfo.dllVer ?? defVer) > (dupLayerInfo.dllVer ?? defVer)
-                                                 || (curLayerInfo.apiVer ?? defVer) > (dupLayerInfo.apiVer ?? defVer);
-                                    if ((curLayerInfo.apiVer == null || dupLayerInfo.apiVer == null)
-                                        && (curLayerInfo.dllVer == null || dupLayerInfo.dllVer == null))
+                                    curIsNewer = (layerInfo.dllVer ?? defVer) > (dupLayerInfo.dllVer ?? defVer)
+                                                 || (layerInfo.apiVer ?? defVer) > (dupLayerInfo.apiVer ?? defVer);
+                                    if ((layerInfo.apiVer == null || dupLayerInfo.apiVer == null)
+                                        && (layerInfo.dllVer == null || dupLayerInfo.dllVer == null))
                                     {
                                         curIsNewer = StringComparer.OrdinalIgnoreCase.Compare(layerPath, dupLayer.path) > 0;
                                     }
