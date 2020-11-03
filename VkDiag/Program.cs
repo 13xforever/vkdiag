@@ -16,13 +16,14 @@ namespace VkDiag
 {
     internal static class Program
     {
+        //private static readonly ConsoleColor defaultBgColor = Console.BackgroundColor;
+        private static readonly ConsoleColor defaultFgColor = Console.ForegroundColor;
+        private const string VkDiagVersion = "1.1";
+
         private static bool isAdmin = false;
         private static bool autofix = false;
         private static bool clear = false;
         private static bool disableLayers = false;
-
-        //private static readonly ConsoleColor defaultBgColor = Console.BackgroundColor;
-        private static readonly ConsoleColor defaultFgColor = Console.ForegroundColor;
 
         private static bool hasBrokenEntries = false;
         private static bool hasProperVulkanDrivers = false;
@@ -40,13 +41,14 @@ namespace VkDiag
         
         public static void Main(string[] args)
         {
-            Console.Title = "Vulkan Diagnostics Tool";
+            Console.Title = "Vulkan Diagnostics Tool v" + VkDiagVersion;
             if (!Environment.Is64BitOperatingSystem)
             {
                 Console.WriteLine("Only 64-bit OS is supported");
                 Environment.Exit(-1);
             }
-            
+
+            WriteLogLine(defaultFgColor, "-", "VkDiag version: " + VkDiagVersion);
             GetOptions(args);
             CheckPermissions();
             CheckOs();
