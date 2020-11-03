@@ -119,6 +119,12 @@ namespace VkDiag
                     {
                         var osName = osi.GetPropertyValue("Caption") as string;
                         var osVersion = osi.GetPropertyValue("Version") as string ?? "";
+                        if (Version.TryParse(osVersion, out var osv))
+                        {
+                            var osVerName = GetWindowsVersion(osv);
+                            if (!string.IsNullOrEmpty(osVerName))
+                                osVersion += $" (Windows {osVerName})";
+                        }
                         var color = defaultFgColor;
                         var status = "+";
                         if (Version.TryParse(osVersion, out var osVer))
@@ -630,6 +636,57 @@ namespace VkDiag
                 WriteLogLine(ConsoleColor.Red, "x", e.ToString());
 #endif                
                 return result;
+            }
+        }
+        
+        private static string GetWindowsVersion(Version windowsVersion)
+        {
+            switch (windowsVersion.Major)
+            {
+                case 5:
+                    switch (windowsVersion.Minor)
+                    {
+                        case 0: return "2000";
+                        case 1: return "XP";
+                        case 2: return "XP x64";
+                        default: return null;
+                    }
+                case 6:
+                    switch (windowsVersion.Minor)
+                    {
+                        case 0: return "Vista";
+                        case 1: return "7";
+                        case 2: return "8";
+                        case 3: return "8.1";
+                        default: return null;
+                    }
+                case 10:
+                    switch (windowsVersion.Build)
+                    {
+                        case int v when v < 10240: return ("10 TH1 Build " + v);
+                        case 10240: return "10 1507";
+                        case int v when v < 10586: return ("10 TH2 Build " + v);
+                        case 10586: return "10 1511";
+                        case int v when v < 14393: return ("10 RS1 Build " + v);
+                        case 14393: return "10 1607";
+                        case int v when v < 15063: return ("10 RS2 Build " + v);
+                        case 15063: return "10 1703";
+                        case int v when v < 16299: return ("10 RS3 Build " + v);
+                        case 16299: return "10 1709";
+                        case int v when v < 17134: return ("10 RS4 Build " + v);
+                        case 17134: return "10 1803";
+                        case int v when v < 17763: return ("10 RS5 Build " + v);
+                        case 17763: return "10 1809";
+                        case int v when v < 18362: return ("10 19H1 Build " + v);
+                        case 18362: return "10 1903";
+                        case 18363: return "10 1909";
+                        case int v when v < 19041: return ("10 20H1 Build " + v);
+                        case 19041: return "10 2004";
+                        case 19042: return "10 20H2";
+                        case int v when v < 19536: return ("10 Beta Build " + v);
+                        default: return ("10 21H1 Build " + windowsVersion.Build);
+                    }
+                default: return null;
             }
         }
     }
