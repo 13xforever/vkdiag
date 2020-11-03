@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Management;
@@ -21,7 +22,7 @@ namespace VkDiag
     {
         //private static readonly ConsoleColor defaultBgColor = Console.BackgroundColor;
         private static readonly ConsoleColor defaultFgColor = Console.ForegroundColor;
-        private const string VkDiagVersion = "1.1.1";
+        private const string VkDiagVersion = "1.1.2";
 
         private static bool isAdmin = false;
         private static bool autofix = false;
@@ -374,6 +375,13 @@ namespace VkDiag
                                 if (!string.IsNullOrEmpty(driverDate))
                                     driverVer += $" ({driverDate})";
                                 WriteLogLine(defaultFgColor, "+", "    Driver version: " + driverVer);
+                                if (DateTime.TryParseExact(driverDate, "MM-dd-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var driverDateTime))
+                                {
+                                    if (driverDateTime < DateTime.UtcNow.AddMonths(-1))
+                                        WriteLogLine(ConsoleColor.DarkYellow, "!", "    Please update your video driver");
+                                    else if (driverDateTime < DateTime.UtcNow.AddMonths(-6))
+                                        WriteLogLine(ConsoleColor.Red, "x", "    Please update your video driver");
+                                }
                             }
                             if (vkReg)
                                 WriteLogLine(ConsoleColor.Green, "v", "    Proper Vulkan driver registration");
@@ -695,9 +703,12 @@ namespace VkDiag
                 switch (result)
                 {
                     case 'a':
-                        autofix = true;
-                        disableLayers = true;
-                        clear = true;
+                        if (validResponses.Contains('f'))
+                            autofix = true;
+                        if (validResponses.Contains('d'))
+                            disableLayers = true;
+                        if (validResponses.Contains('c'))
+                            clear = true;
                         break;
                     case 'f':
                         autofix = true;
