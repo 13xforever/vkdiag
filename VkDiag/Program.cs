@@ -22,7 +22,7 @@ namespace VkDiag
     {
         //private static readonly ConsoleColor defaultBgColor = Console.BackgroundColor;
         private static readonly ConsoleColor defaultFgColor = Console.ForegroundColor;
-        private const string VkDiagVersion = "1.1.2";
+        private const string VkDiagVersion = "1.1.3";
 
         private static bool isAdmin = false;
         private static bool autofix = false;
@@ -483,6 +483,8 @@ namespace VkDiag
             }
 
             var layersList = new List<string> {"Implicit", "Explicit"};
+            var registryHiveList = new List<RegistryKey> {Registry.LocalMachine, Registry.CurrentUser};
+            foreach (var rootKey in registryHiveList)
             foreach (var layer in layersList)
             foreach (var basePath in basePaths)
             {
@@ -491,7 +493,7 @@ namespace VkDiag
                 var conflicts = false;
                 var disabledConflicts = true;
                 var layerInfoList = new List<(string path, bool broken, bool enabled, bool conflicting)>();
-                using (var layerKey = Registry.LocalMachine.OpenSubKey(Path.Combine(basePath, layer + "Layers"), autofix || disableLayers))
+                using (var layerKey = rootKey.OpenSubKey(Path.Combine(basePath, layer + "Layers"), autofix || disableLayers))
                 {
                     if (layerKey == null)
                         continue;
@@ -618,10 +620,10 @@ namespace VkDiag
                         layerInfoList.Add((layerPath, isBroken, isEnabled, isConflicting));
                     }
                 }
+                var is32 = basePath.Contains("WOW6432Node");
                 if (layerInfoList.Count > 0)
                 {
-                    var is32 = basePath.Contains("WOW6432Node");
-                    var msg = $"{layer} layers registration ({(is32 ? "32" : "64")}-bit):";
+                    var msg = $"{layer} layers registration ({rootKey.Name}, {(is32 ? "32" : "64")}-bit):";
                     if (broken && !removedBroken)
                     {
                         if (layer == "Implicit")
@@ -664,7 +666,7 @@ namespace VkDiag
                     }
                 }
                 else
-                    WriteLogLine(ConsoleColor.Green, "+", $"No {layer.ToLower()} layers registered");
+                    WriteLogLine(ConsoleColor.Green, "+", $"No {(is32 ? "32" : "64")}-bit {layer.ToLower()} layers registered in {rootKey.Name}");
             }
         }
 
