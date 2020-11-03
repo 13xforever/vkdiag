@@ -665,7 +665,8 @@ namespace VkDiag
                 var validResponses = new HashSet<char>{'\r', '\n'};
                 
                 Console.WriteLine();
-                Console.WriteLine("Remember to screenshot or copy this screen content if you were asked to.");
+                Console.WriteLine("Remember to screenshot or copy this screen content for support.");
+                Console.WriteLine();
                 Console.WriteLine("There are some issues, what would you like to do?");
                 foreach (var (key, prompt) in menu)
                 {
@@ -703,7 +704,9 @@ namespace VkDiag
                 Environment.Exit(0);
             }
             Console.WriteLine("Everything seems to be fine.");
-            Console.WriteLine("Remember to screenshot or copy this screen content if you were asked to.");
+            Console.WriteLine();
+            Console.WriteLine("Remember to screenshot or copy this screen content for support.");
+            Console.WriteLine();
             Console.WriteLine("Press any key to exit the tool...");
             Console.ReadKey();
             Environment.Exit(0);
