@@ -651,6 +651,8 @@ namespace VkDiag
                             status = " ";
                         name = "    " + name;
                         WriteLogLine(color, status, name);
+                        if (isConflicting && isEnabled)
+                            WriteLogLine(ConsoleColor.Cyan, "i", "        Please update the associated software or disable this layer");
                     }
                 }
                 else
