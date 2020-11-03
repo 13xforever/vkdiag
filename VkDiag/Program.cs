@@ -21,7 +21,7 @@ namespace VkDiag
     {
         //private static readonly ConsoleColor defaultBgColor = Console.BackgroundColor;
         private static readonly ConsoleColor defaultFgColor = Console.ForegroundColor;
-        private const string VkDiagVersion = "1.1";
+        private const string VkDiagVersion = "1.1.0";
 
         private static bool isAdmin = false;
         private static bool autofix = false;
@@ -80,12 +80,12 @@ namespace VkDiag
                     if (latestVer > curVer)
                     {
                         WriteLogLine(ConsoleColor.DarkYellow, "!", "VkDiag version: " + VkDiagVersion);
-                        WriteLogLine(ConsoleColor.DarkYellow, "!", $"    Newer version available: v{latestVer}");
+                        WriteLogLine(ConsoleColor.DarkYellow, "!", $"    Newer version available: {latestVer}");
                     }
                     else
                         WriteLogLine(ConsoleColor.Green, "+", "VkDiag version: " + VkDiagVersion);
                     if (latestBetaVer > latestVer)
-                        WriteLogLine(defaultFgColor, "+", $"    Newer prerelease version available: v{latestBetaVer}");
+                        WriteLogLine(defaultFgColor, "+", $"    Newer prerelease version available: {latestBetaVer}");
                 }
             }
             catch
