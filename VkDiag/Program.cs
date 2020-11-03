@@ -136,12 +136,20 @@ namespace VkDiag
                 args += " -c";
             if (disableLayers)
                 args += " -d";
+            args = args.TrimStart();
+            var cmd = Environment.GetCommandLineArgs()[0];
+            var wtProfile = Environment.GetEnvironmentVariable("WT_PROFILE_ID");
+            if (!string.IsNullOrEmpty(wtProfile))
+            {
+                args = $"\"{cmd}\" {args}";
+                cmd = "wt";
+            }
             var psi = new ProcessStartInfo
             {
                 Verb = "runAs",
                 UseShellExecute = true,
-                FileName = Environment.GetCommandLineArgs()[0],
-                Arguments = args.TrimStart(),
+                FileName = cmd,
+                Arguments = args,
             };
             Process.Start(psi);
             Environment.Exit(0);
