@@ -4,10 +4,13 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Management;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Microsoft.Win32;
 using Mono.Options;
 using VkDiag.POCOs;
@@ -39,7 +42,7 @@ namespace VkDiag
             WriteIndented = true,
         };
         
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             Console.Title = "Vulkan Diagnostics Tool v" + VkDiagVersion;
             if (!Environment.Is64BitOperatingSystem)
@@ -48,15 +51,48 @@ namespace VkDiag
                 Environment.Exit(-1);
             }
 
-            WriteLogLine(defaultFgColor, "-", "VkDiag version: " + VkDiagVersion);
             GetOptions(args);
             CheckPermissions();
+            await CheckVkDiagVersionAsync().ConfigureAwait(false);
             CheckOs();
 
             CheckGpuDrivers();
             CheckVulkanMeta();
 
             ShowMenu();
+        }
+
+        private static async Task CheckVkDiagVersionAsync()
+        {
+            try
+            {
+                using (var client = new HttpClient())
+                {
+                    client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("vkdiag", VkDiagVersion));
+                    var responseJson = await client.GetStringAsync("https://api.github.com/repos/13xforever/vkdiag/releases").ConfigureAwait(false);
+                    var releaseList = JsonSerializer.Deserialize<List<GitHubReleaseInfo>>(responseJson, JsonOptions);
+                    releaseList = releaseList.OrderByDescending(r => Version.TryParse(r.TagName.TrimStart('v'), out var v) ? v : null).ToList();
+                    var latest = releaseList.FirstOrDefault(r => !r.Prerelease);
+                    var latestBeta = releaseList.FirstOrDefault(r => r.Prerelease);
+                    Version.TryParse(VkDiagVersion, out var curVer);
+                    Version.TryParse(latest?.TagName.TrimStart('v') ?? "0", out var latestVer);
+                    Version.TryParse(latestBeta?.TagName.TrimStart('v') ?? "0", out var latestBetaVer);
+                    if (latestVer > curVer)
+                    {
+                        WriteLogLine(ConsoleColor.DarkYellow, "!", "VkDiag version: " + VkDiagVersion);
+                        WriteLogLine(ConsoleColor.DarkYellow, "!", $"    Newer version available: v{latestVer}");
+                    }
+                    else
+                        WriteLogLine(ConsoleColor.Green, "+", "VkDiag version: " + VkDiagVersion);
+                    if (latestBetaVer > latestVer)
+                        WriteLogLine(defaultFgColor, "+", $"    Newer prerelease version available: v{latestBetaVer}");
+                }
+            }
+            catch
+            {
+                WriteLogLine(defaultFgColor, "+", "VkDiag version: " + VkDiagVersion);
+                WriteLogLine(ConsoleColor.DarkYellow, "!", $"    Failed to check for updates");
+            }
         }
 
         private static void GetOptions(string[] args)
