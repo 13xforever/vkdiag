@@ -21,7 +21,7 @@ namespace VkDiag
     {
         //private static readonly ConsoleColor defaultBgColor = Console.BackgroundColor;
         private static readonly ConsoleColor defaultFgColor = Console.ForegroundColor;
-        private const string VkDiagVersion = "1.1.0";
+        private const string VkDiagVersion = "1.1.1";
 
         private static bool isAdmin = false;
         private static bool autofix = false;
