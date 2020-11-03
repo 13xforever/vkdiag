@@ -121,9 +121,11 @@ namespace VkDiag
         private static void CheckPermissions()
             => isAdmin = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
 
-        private static void RestartIfNotElevated()
+        private static void RestartIfNotElevated() => Restart();
+        
+        private static void Restart(bool onlyToElevate = true)
         {
-            if (isAdmin)
+            if (isAdmin && onlyToElevate)
                 return;
             
             Console.WriteLine("Restarting with elevated permissions...");
@@ -487,12 +489,15 @@ namespace VkDiag
                         bool disableLayer(string path)
                         {
                             hasConflictingLayers = conflicts = true;
-                            if (autofix)
+                            if (disableLayers)
                             {
                                 RestartIfNotElevated();
                                 try
                                 {
                                     layerKey.SetValue(path, 1);
+#if DEBUG
+                                    WriteLogLine(ConsoleColor.Green, "+", $"Disabled @{layerPath}");
+#endif
                                     return true;
                                 }
                                 catch
@@ -504,7 +509,12 @@ namespace VkDiag
                                 }
                             }
                             else
+                            {
+#if DEBUG
+                                WriteLogLine(ConsoleColor.DarkYellow, "-", $"Autofix is disabled");
+#endif
                                 disabledConflictingLayers = disabledConflicts = false;
+                            }
                             return false;
                         }
                         
@@ -552,20 +562,35 @@ namespace VkDiag
                                 }
                                 if (idx >= 0)
                                 {
+#if DEBUG
+                                    WriteLogLine(ConsoleColor.Cyan, "i", $"    Found duplicate layer {layerJsonName}");
+#endif
                                     var dupLayer = layerInfoList[idx];
                                     var curLayerInfo = GetLayerInfo(layerPath);
                                     var dupLayerInfo = GetLayerInfo(dupLayer.path);
-                                    if (curLayerInfo.apiVer > dupLayerInfo.apiVer
-                                        || curLayerInfo.dllVer > dupLayerInfo.dllVer
-                                        || ((curLayerInfo.apiVer == null || dupLayerInfo.apiVer == null)
-                                            && (curLayerInfo.dllVer == null || dupLayerInfo.dllVer == null)
-                                            && StringComparer.OrdinalIgnoreCase.Compare(layerPath, dupLayer.path) > 0))
+                                    var curIsNewer = true;
+                                    var defVer = new Version(0, 0);
+
+                                    curIsNewer = (curLayerInfo.dllVer ?? defVer) > (dupLayerInfo.dllVer ?? defVer)
+                                                 || (curLayerInfo.apiVer ?? defVer) > (dupLayerInfo.apiVer ?? defVer);
+                                    if ((curLayerInfo.apiVer == null || dupLayerInfo.apiVer == null)
+                                        && (curLayerInfo.dllVer == null || dupLayerInfo.dllVer == null))
                                     {
+                                        curIsNewer = StringComparer.OrdinalIgnoreCase.Compare(layerPath, dupLayer.path) > 0;
+                                    }
+                                    if (curIsNewer)
+                                    {
+#if DEBUG
+                                        WriteLogLine(ConsoleColor.Cyan, "i", $"    Disabling older layer {layerJsonName}, v{dupLayerInfo.dllVer}, api v{dupLayerInfo.apiVer}");
+#endif
                                         if (disableLayer(dupLayer.path))
                                             layerInfoList[idx] = (dupLayer.path, false, true, true);
                                     }
                                     else
                                     {
+#if DEBUG
+                                        WriteLogLine(ConsoleColor.Cyan, "i", $"    Disabling current layer {layerJsonName}, v{dupLayerInfo.dllVer}, api v{dupLayerInfo.apiVer}");
+#endif
                                         isEnabled = !disableLayer(layerPath);
                                         isConflicting = true;
                                     }
@@ -674,7 +699,7 @@ namespace VkDiag
                         Environment.Exit(0);
                         break;
                 }
-                RestartIfNotElevated();
+                Restart(false);
                 Environment.Exit(0);
             }
             Console.WriteLine("Everything seems to be fine.");
@@ -716,7 +741,7 @@ namespace VkDiag
                 if (name.EndsWith(" layer", StringComparison.OrdinalIgnoreCase))
                     name = name.Substring(0, name.Length - (" layer".Length)).TrimEnd();
                 Version.TryParse(layer.ApiVersion, out apiVer);
-                return ($"{result} ({name}{libVer}, API v{layer.ApiVersion})", libDllVer, apiVer);
+                return ($"{name}{libVer}, API v{layer.ApiVersion} ({result})", libDllVer, apiVer);
             }
             catch
 #if DEBUG
