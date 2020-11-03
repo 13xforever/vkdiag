@@ -185,7 +185,7 @@ namespace VkDiag
             }
         }
 
-        private static readonly HashSet<string> serviceBlockList = new HashSet<string>{"BasicDisplay", "WUDFRd"};
+        private static readonly HashSet<string> serviceBlockList = new HashSet<string>{"BasicDisplay", "WUDFRd", "HyperVideo"};
 
         private static void WriteLogLine(ConsoleColor statusColor, string status, string description)
         {
