@@ -471,7 +471,7 @@ namespace VkDiag
                 removedBroken = true;
                 var conflicts = false;
                 var disabledConflicts = true;
-                var layerInfoList = new List<(string path, bool broken, bool enabled)>();
+                var layerInfoList = new List<(string path, bool broken, bool enabled, bool conflicting)>();
                 using (var layerKey = Registry.LocalMachine.OpenSubKey(Path.Combine(basePath, layer + "Layers"), autofix || disableLayers))
                 {
                     if (layerKey == null)
@@ -482,6 +482,32 @@ namespace VkDiag
                     {
                         var isBroken = !File.Exists(layerPath);
                         var isEnabled = ((int?)layerKey.GetValue(layerPath)) == 0;
+                        var isConflicting = false;
+
+                        bool disableLayer(string path)
+                        {
+                            hasConflictingLayers = conflicts = true;
+                            if (autofix)
+                            {
+                                RestartIfNotElevated();
+                                try
+                                {
+                                    layerKey.SetValue(path, 1);
+                                    return true;
+                                }
+                                catch
+                                {
+                                    disabledConflictingLayers = disabledConflicts = false;
+#if DEBUG
+                                    WriteLogLine(ConsoleColor.Red, "x", $"Failed to fix {layerKey} @{layerPath}");
+#endif
+                                }
+                            }
+                            else
+                                disabledConflictingLayers = disabledConflicts = false;
+                            return false;
+                        }
+                        
                         if (isBroken)
                         {
                             hasBrokenEntries = broken = true;
@@ -504,29 +530,49 @@ namespace VkDiag
                             else
                                 fixedEverything = removedBroken = false;
                         }
-                        else if (isEnabled && knownProblematicLayers.Contains(Path.GetFileName(layerPath)))
+                        else if (isEnabled)
                         {
-                            hasConflictingLayers = conflicts = true;
-                            if (autofix)
+                            var layerJsonName = Path.GetFileName(layerPath);
+                            if (knownProblematicLayers.Contains(layerJsonName))
                             {
-                                RestartIfNotElevated();
-                                try
-                                {
-                                    layerKey.SetValue(layerPath, 1);
-                                    isEnabled = false;
-                                }
-                                catch
-                                {
-                                    disabledConflictingLayers = disabledConflicts = false;
-#if DEBUG
-                                    WriteLogLine(ConsoleColor.Red, "x", $"Failed to fix {layerKey} @{layerPath}");
-#endif
-                                }
+                                isEnabled = !disableLayer(layerPath);
+                                isConflicting = true;
                             }
                             else
-                                disabledConflictingLayers = disabledConflicts = false;
+                            {
+                                var idx = -1;
+                                for (var i = 0; i < layerInfoList.Count; i++)
+                                {
+                                    var l = layerInfoList[i];
+                                    if (!l.broken && l.enabled && Path.GetFileName(l.path).Equals(layerJsonName, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        idx = i;
+                                        break;
+                                    }
+                                }
+                                if (idx >= 0)
+                                {
+                                    var dupLayer = layerInfoList[idx];
+                                    var curLayerInfo = GetLayerInfo(layerPath);
+                                    var dupLayerInfo = GetLayerInfo(dupLayer.path);
+                                    if (curLayerInfo.apiVer > dupLayerInfo.apiVer
+                                        || curLayerInfo.dllVer > dupLayerInfo.dllVer
+                                        || ((curLayerInfo.apiVer == null || dupLayerInfo.apiVer == null)
+                                            && (curLayerInfo.dllVer == null || dupLayerInfo.dllVer == null)
+                                            && StringComparer.OrdinalIgnoreCase.Compare(layerPath, dupLayer.path) > 0))
+                                    {
+                                        if (disableLayer(dupLayer.path))
+                                            layerInfoList[idx] = (dupLayer.path, false, true, true);
+                                    }
+                                    else
+                                    {
+                                        isEnabled = !disableLayer(layerPath);
+                                        isConflicting = true;
+                                    }
+                                }
+                            }
                         }
-                        layerInfoList.Add((layerPath, isBroken, isEnabled));
+                        layerInfoList.Add((layerPath, isBroken, isEnabled, isConflicting));
                     }
                 }
                 if (layerInfoList.Count > 0)
@@ -544,11 +590,12 @@ namespace VkDiag
                         WriteLogLine(ConsoleColor.DarkYellow, "!", msg);
                     else
                         WriteLogLine(ConsoleColor.Green, "+", msg);
-                    foreach (var (layerPath, isBroken, isEnabled) in layerInfoList)
+                    foreach (var (layerPath, isBroken, isEnabled, isConflicting) in layerInfoList)
                     {
                         var color = ConsoleColor.Green;
                         var status = "+";
-                        var name = GetLayerInfo(layerPath);
+                        var layerInfo = GetLayerInfo(layerPath);
+                        var name = layerInfo.title;
                         if (isEnabled)
                         {
                             if (isBroken)
@@ -559,7 +606,7 @@ namespace VkDiag
                                 else
                                     color = ConsoleColor.DarkYellow;
                             }
-                            else if (knownProblematicLayers.Contains(name))
+                            else if (isConflicting)
                             {
                                 color = ConsoleColor.DarkYellow;
                                 status = "!";
@@ -637,12 +684,14 @@ namespace VkDiag
             Environment.Exit(0);
         }
 
-        private static string GetLayerInfo(string layerPath)
+        private static (string title, Version dllVer, Version apiVer) GetLayerInfo(string layerPath)
         {
             var result = Path.GetFileName(layerPath); 
             if (!File.Exists(layerPath))
-                return result;
+                return (result, null, null);
 
+            Version libDllVer = null;
+            Version apiVer = null;
             try
             {
                 var layerContent = File.ReadAllText(layerPath, Encoding.UTF8);
@@ -655,7 +704,10 @@ namespace VkDiag
                 {
                     var libVerInfo = FileVersionInfo.GetVersionInfo(layerImplLib);
                     if (!string.IsNullOrEmpty(libVerInfo.FileVersion))
+                    {
                         libVer = ", v" + libVerInfo.FileVersion;
+                        Version.TryParse(libVerInfo.FileVersion, out libDllVer);
+                    }
                 }
 
                 var name = layer.Description ?? layer.Name;
@@ -663,7 +715,8 @@ namespace VkDiag
                     name = name.Substring(0, name.Length - (" vulkan layer".Length)).TrimEnd();
                 if (name.EndsWith(" layer", StringComparison.OrdinalIgnoreCase))
                     name = name.Substring(0, name.Length - (" layer".Length)).TrimEnd();
-                return $"{result} ({name}{libVer}, API v{layer.ApiVersion})";
+                Version.TryParse(layer.ApiVersion, out apiVer);
+                return ($"{result} ({name}{libVer}, API v{layer.ApiVersion})", libDllVer, apiVer);
             }
             catch
 #if DEBUG
@@ -673,7 +726,7 @@ namespace VkDiag
 #if DEBUG
                 WriteLogLine(ConsoleColor.Red, "x", e.ToString());
 #endif                
-                return result;
+                return (result, libDllVer, apiVer);
             }
         }
         
