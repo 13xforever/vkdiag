@@ -22,7 +22,7 @@ namespace VkDiag
     {
         //private static readonly ConsoleColor defaultBgColor = Console.BackgroundColor;
         private static readonly ConsoleColor defaultFgColor = Console.ForegroundColor;
-        private const string VkDiagVersion = "1.1.3";
+        private const string VkDiagVersion = "1.1.4";
 
         private static bool isAdmin = false;
         private static bool autofix = false;
@@ -42,6 +42,11 @@ namespace VkDiag
             ["MirillisActionVulkanLayer.json"] = null,
             ["obs-vulkan64.json"] = new Version(1, 2, 2, 0),
             ["obs-vulkan32.json"] = new Version(1, 2, 2, 0),
+        };
+
+        private static  Dictionary<string, Version> VulkanLoaderExpectedVersions = new Dictionary<string, Version>
+        {
+            ["1"] = new Version(1, 2, 141, 0),
         };
 
         private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
@@ -199,6 +204,35 @@ namespace VkDiag
             {
                 WriteLogLine(ConsoleColor.DarkYellow, "x", "Failed to get OS information");
             }
+            try
+            {
+                var vulkanLoaderLibs = Directory.GetFiles(Environment.GetFolderPath(Environment.SpecialFolder.System), "vulkan-?.dll", SearchOption.TopDirectoryOnly);
+                if (vulkanLoaderLibs.Length == 0)
+                {
+                    WriteLogLine(ConsoleColor.Red, "x", "No Vulkan Loader library was found; please reinstall latest GPU drivers");
+                }
+                else
+                {
+                    foreach (var libPath in vulkanLoaderLibs)
+                    {
+                        try
+                        {
+                            var libVerInfo = FileVersionInfo.GetVersionInfo(libPath);
+                            if (!string.IsNullOrEmpty(libVerInfo.FileVersion))
+                            {
+                                var abiVersion = Path.GetFileNameWithoutExtension(libPath).Split('-').Last();
+                                var color = defaultFgColor;
+                                if (Version.TryParse(libVerInfo.FileVersion, out var libDllVersion)
+                                    && VulkanLoaderExpectedVersions.TryGetValue(abiVersion, out var expectedVersion)
+                                    && libDllVersion >= expectedVersion)
+                                    color = ConsoleColor.Green;
+                                WriteLogLine(color, "+", $"System Vulkan loader version: {libVerInfo.FileVersion}");
+                            }
+                        }
+                        catch{}
+                    }
+                }
+            } catch{}
         }
 
         private static readonly HashSet<string> serviceBlockList = new HashSet<string>{"BasicDisplay", "WUDFRd", "HyperVideo"};
