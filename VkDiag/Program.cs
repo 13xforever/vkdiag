@@ -22,7 +22,7 @@ namespace VkDiag
     {
         //private static readonly ConsoleColor defaultBgColor = Console.BackgroundColor;
         private static readonly ConsoleColor defaultFgColor = Console.ForegroundColor;
-        private const string VkDiagVersion = "1.1.4";
+        private const string VkDiagVersion = "1.1.5";
 
         private static bool isAdmin = false;
         private static bool autofix = false;
@@ -44,7 +44,7 @@ namespace VkDiag
             ["obs-vulkan32.json"] = new Version(1, 2, 2, 0),
         };
 
-        private static  Dictionary<string, Version> VulkanLoaderExpectedVersions = new Dictionary<string, Version>
+        private static readonly Dictionary<string, Version> VulkanLoaderExpectedVersions = new Dictionary<string, Version>
         {
             ["1"] = new Version(1, 2, 141, 0),
         };
@@ -57,7 +57,15 @@ namespace VkDiag
         
         public static async Task Main(string[] args)
         {
-            Console.Title = "Vulkan Diagnostics Tool v" + VkDiagVersion;
+            try
+            {
+                Console.Title = "Vulkan Diagnostics Tool v" + VkDiagVersion;
+                Console.WindowWidth = Math.Min(Console.LargestWindowWidth, 100);
+                Console.WindowHeight = Math.Min(Console.LargestWindowHeight, 60);
+                Console.BufferWidth = Console.WindowWidth;
+            }
+            catch {}
+            
             if (!Environment.Is64BitOperatingSystem)
             {
                 Console.WriteLine("Only 64-bit OS is supported");
@@ -229,10 +237,16 @@ namespace VkDiag
                                 WriteLogLine(color, "+", $"System Vulkan loader version: {libVerInfo.FileVersion}");
                             }
                         }
-                        catch{}
+                        catch
+                        {
+                        }
                     }
                 }
-            } catch{}
+            }
+            catch
+            {
+                WriteLogLine(ConsoleColor.DarkYellow, "x", "Failed to get system Vulkan loader info");
+            }
         }
 
         private static readonly HashSet<string> serviceBlockList = new HashSet<string>{"BasicDisplay", "WUDFRd", "HyperVideo"};
