@@ -188,30 +188,52 @@ namespace VkDiag
                     {
                         var osName = osi.GetPropertyValue("Caption") as string;
                         var osVersion = osi.GetPropertyValue("Version") as string ?? "";
-                        if (Version.TryParse(osVersion, out var osv))
-                        {
-                            var osVerName = GetWindowsVersion(osv);
-                            if (!string.IsNullOrEmpty(osVerName))
-                                osVersion += $" (Windows {osVerName})";
-                        }
                         var color = defaultFgColor;
+                        var verColor = color;
                         var status = "+";
+                        var verStatus = "+";
                         if (Version.TryParse(osVersion, out var osVer))
                         {
                             if (osVer.Major < 10)
+                            {
                                 color = ConsoleColor.DarkYellow;
+                                status = "!";
+                                verColor = color;
+                                verStatus = status;
+                            }
+                            else if (osVer.Build < 18363)
+                            {
+                                verColor = ConsoleColor.DarkYellow;
+                                verStatus = "!";
+                            }
                             else
+                            {
                                 color = ConsoleColor.Green;
+                                verColor = color;
+                            }
+                            var osVerName = GetWindowsVersion(osVer);
+                            if (!string.IsNullOrEmpty(osVerName))
+                                osVersion += $" (Windows {osVerName})";
                         }
                         WriteLogLine(color, status, "OS: " + osName);
-                        WriteLogLine(color, status, "Version: " + osVersion);
+                        WriteLogLine(verColor, verStatus, "Version: " + osVersion);
+                        if (verStatus != "+")
+                            WriteLogLine(verColor, "!", "    This version of Windows has reached the End of Service status for mainstream support");
                     }
                 }
             }
+#if DEBUG
+            catch (Exception e)
+            {
+                WriteLogLine(ConsoleColor.DarkYellow, "x", "Failed to get OS information");
+                WriteLogLine(ConsoleColor.Red, "x", e.ToString());
+            }
+#else
             catch
             {
                 WriteLogLine(ConsoleColor.DarkYellow, "x", "Failed to get OS information");
             }
+#endif
             try
             {
                 var vulkanLoaderLibs = Directory.GetFiles(Environment.GetFolderPath(Environment.SpecialFolder.System), "vulkan-?.dll", SearchOption.TopDirectoryOnly);
