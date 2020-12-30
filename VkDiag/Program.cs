@@ -1,18 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
-using System.IO;
 using System.Linq;
-using System.Management;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Principal;
-using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Microsoft.Win32;
 using Mono.Options;
 using VkDiag.POCOs;
 
@@ -20,8 +14,7 @@ namespace VkDiag
 {
     internal static partial class Program
     {
-        //private static readonly ConsoleColor defaultBgColor = Console.BackgroundColor;
-        private const string VkDiagVersion = "1.1.5";
+        private const string VkDiagVersion = "1.1.6";
 
         private static bool isAdmin = false;
         private static bool autofix = false;
