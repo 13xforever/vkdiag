@@ -530,7 +530,7 @@ namespace VkDiag
 
             if ((!hasExplicitDriverReg || removedExplicitDriverReg)
                 && (!broken || removedBroken))
-                WriteLogLine(ConsoleColor.Green, "+", "Clean explicit driver registration");
+                WriteLogLine(ConsoleColor.Green, "+", "No explicit driver registration entries");
             else
                 WriteLogLine(ConsoleColor.DarkYellow, "!", "Explicit driver registration issues");
             if (hasExplicitDriverReg)
