@@ -172,7 +172,21 @@ namespace VkDiag
                                 if (!string.IsNullOrEmpty(driverDate))
                                     driverVer += $" ({driverDate})";
                                 WriteLogLine(defaultFgColor, "+", "    Driver version: " + driverVer);
-                                if (DateTime.TryParseExact(driverDate, "MM-dd-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var driverDateTime))
+
+                                var hasDate = DateTime.TryParseExact(driverDate, "MM-dd-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var driverDateTime);
+                                if (!hasDate)
+                                {
+                                    var match = Regex.Match(driverDate, @"(?<month>\d{1,2})-(?<day>\d{1,2})-(?<year>\d{4})");
+                                    if (match.Success
+                                        && int.TryParse(match.Groups["year"].Value, out var year)
+                                        && int.TryParse(match.Groups["month"].Value, out var month)
+                                        && int.TryParse(match.Groups["day"].Value, out var day))
+                                    {
+                                        driverDateTime = new DateTime(year, month, day, 0, 0, 0, DateTimeKind.Utc);
+                                        hasDate = true;
+                                    }
+                                }
+                                if (hasDate)
                                 {
                                     if (driverDateTime < DateTime.UtcNow.AddMonths(-1))
                                         WriteLogLine(ConsoleColor.DarkYellow, "!", "    Please update your video driver");
