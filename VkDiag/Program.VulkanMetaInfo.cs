@@ -20,6 +20,7 @@ namespace VkDiag
         private static readonly Dictionary<string, Version> KnownProblematicLayers = new Dictionary<string, Version>
         {
             ["MirillisActionVulkanLayer.json"] = null,
+            ["ow-vulkan-overlay64.json"] = null,
             ["obs-vulkan64.json"] = new Version(1, 2, 2, 0),
             ["obs-vulkan32.json"] = new Version(1, 2, 2, 0),
         };
