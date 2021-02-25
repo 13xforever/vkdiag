@@ -21,6 +21,8 @@ namespace VkDiag
         {
             ["MirillisActionVulkanLayer.json"] = null,
             ["ow-vulkan-overlay64.json"] = null,
+            ["fpsmonvk64.json"] = null,
+            ["fpsmonvk32.json"] = null,
             ["obs-vulkan64.json"] = new Version(1, 2, 2, 0),
             ["obs-vulkan32.json"] = new Version(1, 2, 2, 0),
         };
