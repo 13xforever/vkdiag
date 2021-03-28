@@ -14,7 +14,7 @@ namespace VkDiag
 {
     internal static partial class Program
     {
-        private const string VkDiagVersion = "1.1.9";
+        private const string VkDiagVersion = "1.1.10-beta1";
 
         private static bool isAdmin = false;
         private static bool autofix = false;
@@ -63,23 +63,29 @@ namespace VkDiag
             {
                 using (var client = new HttpClient())
                 {
-                    client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("vkdiag", VkDiagVersion));
+                    var curVerParts = VkDiagVersion.Split(new[] {' ', '-'}, 2);
+                    client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("vkdiag", curVerParts[0]));
                     var responseJson = await client.GetStringAsync("https://api.github.com/repos/13xforever/vkdiag/releases").ConfigureAwait(false);
                     var releaseList = JsonSerializer.Deserialize<List<GitHubReleaseInfo>>(responseJson, JsonOptions);
-                    releaseList = releaseList.OrderByDescending(r => Version.TryParse(r.TagName.TrimStart('v'), out var v) ? v : null).ToList();
-                    var latest = releaseList.FirstOrDefault(r => !r.Prerelease);
-                    var latestBeta = releaseList.FirstOrDefault(r => r.Prerelease);
-                    Version.TryParse(VkDiagVersion, out var curVer);
+                    releaseList = releaseList?.OrderByDescending(r => Version.TryParse(r.TagName.TrimStart('v'), out var v) ? v : null).ToList();
+                    var latest = releaseList?.FirstOrDefault(r => !r.Prerelease);
+                    var latestBeta = releaseList?.FirstOrDefault(r => r.Prerelease);
+                    Version.TryParse(curVerParts[0], out var curVer);
                     Version.TryParse(latest?.TagName.TrimStart('v') ?? "0", out var latestVer);
-                    Version.TryParse(latestBeta?.TagName.TrimStart('v') ?? "0", out var latestBetaVer);
-                    if (latestVer > curVer)
+                    var latestBetaParts = latestBeta?.TagName.Split(new[] {' ', '-'}, 2);
+                    Version.TryParse(latestBetaParts?[0] ?? "0", out var latestBetaVer);
+                    if (latestVer > curVer || latestVer == curVer && curVerParts.Length > 1)
                     {
                         WriteLogLine(ConsoleColor.DarkYellow, "!", "VkDiag version: " + VkDiagVersion);
                         WriteLogLine(ConsoleColor.DarkYellow, "!", $"    Newer version available: {latestVer}");
                     }
                     else
                         WriteLogLine(ConsoleColor.Green, "+", "VkDiag version: " + VkDiagVersion);
-                    if (latestBetaVer > latestVer)
+                    if (latestBetaVer > latestVer
+                        || (latestVer == latestBetaVer
+                            && curVerParts.Length > 1
+                            && (latestBetaParts?.Length > 1 && latestBetaParts[1] != curVerParts[1]
+                                || (latestBetaParts?.Length ?? 0) == 0)))
                         WriteLogLine(defaultFgColor, "+", $"    Newer prerelease version available: {latestBetaVer}");
                 }
             }

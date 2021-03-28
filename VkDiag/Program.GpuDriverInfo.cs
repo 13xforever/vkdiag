@@ -66,7 +66,7 @@ namespace VkDiag
                             WriteLogLine(ConsoleColor.Red, "x", $"Failed to read driver info for GPU {gpuGuid}");
                             continue;
                         }
-                        string name = null;
+                        var name = "";
                         if (inactiveGpuGuidList.Contains(gpuGuid))
                         {
                             using (var gpuVideoKey = gpuKey.OpenSubKey("Video"))
@@ -79,6 +79,7 @@ namespace VkDiag
                         {
                             var vkReg = false;
                             var broken = false;
+                            var brokenDriverRegistration = false;
                             var removedBroken = true;
                             var driverVer = "";
                             var driverDate = "";
@@ -95,6 +96,11 @@ namespace VkDiag
                                         driverDate = outputKey.GetValue("DriverDate") as string;
                                     if (string.IsNullOrEmpty(name))
                                         name = outputKey.GetValue("DriverDesc") as string;
+                                    if (string.IsNullOrEmpty(name))
+                                    {
+                                        name = gpuGuid;
+                                        hasBrokenEntries = brokenDriverRegistration = true;
+                                    }
 
                                     foreach (var entry in driverVkEntries)
                                     {
@@ -155,7 +161,7 @@ namespace VkDiag
                             // device name with overall status
                             var color = ConsoleColor.Green;
                             var status = "+";
-                            if (!broken || removedBroken)
+                            if ((!broken || removedBroken) && !brokenDriverRegistration)
                             {
                                 if (vkReg)
                                     status = "v";
@@ -167,6 +173,8 @@ namespace VkDiag
                             }
                             WriteLogLine(color, status, name);
                             // per-gpu checks
+                            if (brokenDriverRegistration)
+                                WriteLogLine(ConsoleColor.Red, "x", "    Broken driver registration (?)");
                             if (!string.IsNullOrEmpty(driverVer))
                             {
                                 if (!string.IsNullOrEmpty(driverDate))
