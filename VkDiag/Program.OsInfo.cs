@@ -39,7 +39,7 @@ namespace VkDiag
                                 verColor = color;
                                 verStatus = status;
                             }
-                            else if (osVer.Build < 18363)
+                            else if (osVer.Build < 19041)
                             {
                                 verColor = ConsoleColor.DarkYellow;
                                 verStatus = "!";
