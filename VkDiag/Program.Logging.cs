@@ -8,6 +8,7 @@ namespace VkDiag
 
         private static void WriteLogLine(ConsoleColor statusColor, string status, string description)
         {
+            description = description ?? "???";
             var val = description.TrimStart();
             string prefix = "";
             if (val.Length < description.Length)
