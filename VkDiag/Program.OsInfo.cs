@@ -19,6 +19,31 @@ namespace VkDiag
             try
             {
                 var scope = ManagementPath.DefaultPath.ToString();
+                using (var searcher = new ManagementObjectSearcher(scope, "SELECT Name FROM CIM_Processor"))
+                using (var collection = searcher.Get())
+                {
+                    foreach (var cpui in collection)
+                    {
+                        var cpuName = cpui.GetPropertyValue("Name") as string;
+                        WriteLogLine(ConsoleColor.Cyan, "i", "CPU: " + cpuName);
+                    }
+                }
+            }
+#if DEBUG
+            catch (Exception e)
+            {
+                WriteLogLine(ConsoleColor.DarkYellow, "x", "Failed to get CPU information");
+                WriteLogLine(ConsoleColor.Red, "x", e.ToString());
+            }
+#else
+            catch
+            {
+                WriteLogLine(ConsoleColor.DarkYellow, "x", "Failed to get CPU information");
+            }
+#endif
+            try
+            {
+                var scope = ManagementPath.DefaultPath.ToString();
                 using (var searcher = new ManagementObjectSearcher(scope, "SELECT Caption, Version FROM CIM_OperatingSystem"))
                 using (var collection = searcher.Get())
                 {
@@ -71,7 +96,7 @@ namespace VkDiag
             {
                 WriteLogLine(ConsoleColor.DarkYellow, "x", "Failed to get OS information");
             }
-#endif
+#endif      
             try
             {
                 var vulkanLoaderLibs = Directory.GetFiles(Environment.GetFolderPath(Environment.SpecialFolder.System), "vulkan-?.dll", SearchOption.TopDirectoryOnly);
