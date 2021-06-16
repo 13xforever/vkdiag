@@ -180,7 +180,8 @@ namespace VkDiag
                         case 19042: return "10 20H2";
                         case 19043: return "10 21H1";
                         case int v when v < 19536: return ("10 Beta Build " + v);
-                        default: return ("10 Dev Build " + windowsVersion.Build);
+                        case int v when v < 22000: return ("10 Dev Build " + v);
+                        default: return ("11 Internal Build " + windowsVersion.Build);
                     }
                 default:
                     return null;
