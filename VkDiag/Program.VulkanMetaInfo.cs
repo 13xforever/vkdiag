@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Win32;
@@ -198,7 +199,7 @@ namespace VkDiag
                         else if (isEnabled)
                         {
                             var layerJsonName = Path.GetFileName(layerPath);
-                            var layerInfo = GetLayerInfo(layerPath);
+                            var layerInfo = GetLayerInfo(layerPath)[0];
                             if (KnownProblematicLayers.TryGetValue(layerJsonName, out var minLayerVersion)
                                 && (layerInfo.dllVer == null || minLayerVersion == null || layerInfo.dllVer < minLayerVersion))
                             {
@@ -223,7 +224,7 @@ namespace VkDiag
                                     WriteLogLine(ConsoleColor.Cyan, "i", $"    Found duplicate layer {layerJsonName}");
 #endif
                                     var dupLayer = layerInfoList[idx];
-                                    var dupLayerInfo = GetLayerInfo(dupLayer.path);
+                                    var dupLayerInfo = GetLayerInfo(dupLayer.path)[0];
                                     var curIsNewer = true;
                                     var defVer = new Version(0, 0);
 
@@ -273,9 +274,9 @@ namespace VkDiag
                         WriteLogLine(ConsoleColor.Green, "+", msg);
                     foreach (var (layerPath, isBroken, isEnabled, isConflicting) in layerInfoList)
                     {
+                        var layerInfo = GetLayerInfo(layerPath)[0];
                         var color = ConsoleColor.Green;
                         var status = "+";
-                        var layerInfo = GetLayerInfo(layerPath);
                         var name = layerInfo.title;
                         if (isEnabled)
                         {
@@ -306,39 +307,53 @@ namespace VkDiag
             }
         }
 
-        private static (string title, Version dllVer, Version apiVer) GetLayerInfo(string layerPath)
+        private static List<(string title, Version dllVer, Version apiVer)> GetLayerInfo(string layerPath)
         {
-            var result = Path.GetFileName(layerPath);
+            var layerFilename = Path.GetFileName(layerPath);
+            var defaultResult = new List<(string title, Version dllVer, Version apiVer)> { (layerFilename, null, null) };
             if (!File.Exists(layerPath))
-                return (result, null, null);
+                return defaultResult;
 
             Version libDllVer = null;
             Version apiVer = null;
             try
             {
                 var layerContent = File.ReadAllText(layerPath, Encoding.UTF8);
+                if (string.IsNullOrEmpty(layerContent))
+                    return defaultResult;
+                
                 var regInfo = JsonSerializer.Deserialize<VkRegInfo>(layerContent, JsonOptions);
-                var layer = regInfo.Layer;
-                var baseDir = Path.GetDirectoryName(layerPath);
-                var layerImplLib = string.IsNullOrEmpty(layer.LibraryPath) ? null : Path.Combine(baseDir, layer.LibraryPath);
-                string libVer = null;
-                if (File.Exists(layerImplLib))
+                var layers = regInfo?.Layers ?? new List<VkLayer>();
+                if (regInfo?.Layer != null)
+                    layers.Add(regInfo.Layer);
+                if (layers.Count == 0)
+                    return defaultResult;
+                
+                var baseDir = Path.GetDirectoryName(layerPath) ?? ".";
+                var result = new List<(string title, Version dllVer, Version apiVer)>();
+                foreach (var layer in layers)
                 {
-                    var libVerInfo = FileVersionInfo.GetVersionInfo(layerImplLib);
-                    if (!string.IsNullOrEmpty(libVerInfo.FileVersion))
+                    var layerImplLib = string.IsNullOrEmpty(layer.LibraryPath) ? null : Path.Combine(baseDir, layer.LibraryPath);
+                    string libVer = null;
+                    if (layerImplLib != null && File.Exists(layerImplLib))
                     {
-                        libVer = ", v" + libVerInfo.FileVersion;
-                        Version.TryParse(libVerInfo.FileVersion, out libDllVer);
+                        var libVerInfo = FileVersionInfo.GetVersionInfo(layerImplLib);
+                        if (!string.IsNullOrEmpty(libVerInfo.FileVersion))
+                        {
+                            libVer = ", v" + libVerInfo.FileVersion;
+                            Version.TryParse(libVerInfo.FileVersion, out libDllVer);
+                        }
                     }
-                }
 
-                var name = layer.Description ?? layer.Name;
-                if (name.EndsWith(" vulkan layer", StringComparison.OrdinalIgnoreCase))
-                    name = name.Substring(0, name.Length - (" vulkan layer".Length)).TrimEnd();
-                if (name.EndsWith(" layer", StringComparison.OrdinalIgnoreCase))
-                    name = name.Substring(0, name.Length - (" layer".Length)).TrimEnd();
-                Version.TryParse(layer.ApiVersion, out apiVer);
-                return ($"{name}{libVer}, API v{layer.ApiVersion} ({result})", libDllVer, apiVer);
+                    var name = layer.Description ?? layer.Name;
+                    if (name.EndsWith(" vulkan layer", StringComparison.OrdinalIgnoreCase))
+                        name = name.Substring(0, name.Length - (" vulkan layer".Length)).TrimEnd();
+                    if (name.EndsWith(" layer", StringComparison.OrdinalIgnoreCase))
+                        name = name.Substring(0, name.Length - (" layer".Length)).TrimEnd();
+                    Version.TryParse(layer.ApiVersion, out apiVer);
+                    result.Add(($"{name}{libVer}, API v{layer.ApiVersion} ({layerFilename})", libDllVer, apiVer));
+                }
+                return result;
             }
             catch
 #if DEBUG
@@ -348,7 +363,7 @@ namespace VkDiag
 #if DEBUG
                 WriteLogLine(ConsoleColor.Red, "x", e.ToString());
 #endif
-                return (result, libDllVer, apiVer);
+                return new List<(string title, Version dllVer, Version apiVer)> { (layerFilename, libDllVer, apiVer) };
             }
         }
     }
