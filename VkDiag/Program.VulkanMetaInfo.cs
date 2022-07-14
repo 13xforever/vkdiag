@@ -28,6 +28,8 @@ namespace VkDiag
             ["hudsightvk32.json"] = null,
             ["playclawvk64.json"] = null,
             ["playclawvk32.json"] = null,
+            ["VK_LAYER_FCAT_DT_overlay_JSON_x64.json"] = null,
+            ["VK_LAYER_FCAT_DT_overlay_JSON_x86.json"] = null,
             ["bdcamvk64.json"] = new Version(1, 1, 0, 111),
             ["bdcamvk32.json"] = new Version(1, 1, 0, 111),
             ["obs-vulkan64.json"] = new Version(1, 2, 2, 0),
