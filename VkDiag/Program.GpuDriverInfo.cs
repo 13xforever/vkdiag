@@ -10,7 +10,7 @@ namespace VkDiag
 {
     internal static partial class Program
     {
-        private static readonly HashSet<string> ServiceBlockList = new HashSet<string>{"BasicDisplay", "WUDFRd", "HyperVideo"};
+        private static readonly HashSet<string> ServiceBlockList = new HashSet<string> { "BasicDisplay", "WUDFRd", "HyperVideo", "MS Idd Device", };
 
         private static void CheckGpuDrivers()
         {
@@ -36,7 +36,7 @@ namespace VkDiag
                 foreach (var gpuGuid in videoKey.GetSubKeyNames())
                     using (var gpuKey = videoKey.OpenSubKey(gpuGuid))
                     {
-                        var gpuSubKeys = gpuKey?.GetSubKeyNames() ?? new string[0];
+                        var gpuSubKeys = gpuKey?.GetSubKeyNames() ?? Array.Empty<string>();
                         if (gpuSubKeys.Contains("Video"))
                         {
                             if (gpuSubKeys.Contains("0000"))
