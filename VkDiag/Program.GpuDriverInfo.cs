@@ -196,7 +196,7 @@ namespace VkDiag
                                 }
                                 if (hasDate)
                                 {
-                                    if (driverDateTime < DateTime.UtcNow.AddMonths(-1))
+                                    if (driverDateTime < DateTime.UtcNow.AddMonths(-2))
                                         WriteLogLine(ConsoleColor.DarkYellow, "!", "    Please update your video driver");
                                     else if (driverDateTime < DateTime.UtcNow.AddMonths(-6))
                                         WriteLogLine(ConsoleColor.Red, "x", "    Please update your video driver");
