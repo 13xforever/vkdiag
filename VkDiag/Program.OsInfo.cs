@@ -187,6 +187,8 @@ namespace VkDiag
                         case 19042: return (OsSupportStatus.Deprecated, "10 20H2");
                         case 19043: return (OsSupportStatus.Supported, "10 21H1");
                         case 19044: return (OsSupportStatus.Supported, "10 21H2");
+                        case 19045: return (OsSupportStatus.Supported, "10 22H2");
+                        
                         case int v when v < 21390: return (OsSupportStatus.Prerelease, $"10 Dev Build {v}");
                         case int v when v < 22000: return (OsSupportStatus.Deprecated, $"11 21H2 Internal Build {v}");
                         case 22000: return (OsSupportStatus.Supported, "11 21H2");
