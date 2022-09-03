@@ -1,4 +1,4 @@
-#!/bin/pwsh
+#!/usr/bin/pwsh
 
 param(
     [switch]$norestart,
