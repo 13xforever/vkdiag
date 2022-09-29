@@ -194,7 +194,7 @@ namespace VkDiag
                         case 22000: return (OsSupportStatus.Supported, "11 21H2");
                         case int v when v < 22621: return (OsSupportStatus.Deprecated, $"11 22H2 Beta Build {v}");
                         case 22621: return (OsSupportStatus.Supported, "11 22H2");
-                        case 22622: return (OsSupportStatus.Supported, $"11 Beta Build {windowsVersion.Build}");
+                        case int v when v < 22624: return (OsSupportStatus.Supported, $"11 Beta Build {windowsVersion.Build}");
                         default: return (OsSupportStatus.Prerelease, $"11 Dev Build {windowsVersion.Build}");
                     }
                 default:
