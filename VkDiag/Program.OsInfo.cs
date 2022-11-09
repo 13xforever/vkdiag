@@ -165,6 +165,7 @@ namespace VkDiag
                 case 10:
                     switch (windowsVersion.Build)
                     {
+                        // https://learn.microsoft.com/en-us/lifecycle/products/windows-10-home-and-pro
                         case int v when v < 10240: return (OsSupportStatus.Deprecated, $"10 TH1 Build {v}");
                         case 10240: return (OsSupportStatus.Deprecated, "10 1507");
                         case int v when v < 10586: return (OsSupportStatus.Deprecated, $"10 TH2 Build {v}");
@@ -185,10 +186,11 @@ namespace VkDiag
                         case int v when v < 19041: return (OsSupportStatus.Deprecated, $"10 20H1 Build {v}");
                         case 19041: return (OsSupportStatus.Deprecated, "10 2004");
                         case 19042: return (OsSupportStatus.Deprecated, "10 20H2");
-                        case 19043: return (OsSupportStatus.Supported, "10 21H1");
+                        case 19043: return (OsSupportStatus.Deprecated, "10 21H1");
                         case 19044: return (OsSupportStatus.Supported, "10 21H2");
                         case 19045: return (OsSupportStatus.Supported, "10 22H2");
                         
+                        // https://learn.microsoft.com/en-us/lifecycle/products/windows-11-home-and-pro
                         case int v when v < 21390: return (OsSupportStatus.Prerelease, $"10 Dev Build {v}");
                         case int v when v < 22000: return (OsSupportStatus.Deprecated, $"11 21H2 Internal Build {v}");
                         case 22000: return (OsSupportStatus.Supported, "11 21H2");
