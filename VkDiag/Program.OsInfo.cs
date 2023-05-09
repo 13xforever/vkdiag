@@ -191,15 +191,15 @@ namespace VkDiag
                         case 19045: return (OsSupportStatus.Supported, "10 22H2");
                         
                         // https://learn.microsoft.com/en-us/lifecycle/products/windows-11-home-and-pro
-                        case int v when v < 21390: return (OsSupportStatus.Prerelease, $"10 Dev Build {v}");
+                        case int v when v < 21390: return (OsSupportStatus.Deprecated, $"10 Dev Build {v}");
                         case int v when v < 22000: return (OsSupportStatus.Deprecated, $"11 21H2 Internal Build {v}");
                         case 22000: return (OsSupportStatus.Supported, "11 21H2");
                         case int v when v < 22621: return (OsSupportStatus.Deprecated, $"11 22H2 Beta Build {v}");
                         case 22621: return (OsSupportStatus.Supported, "11 22H2");
-                        case int v when v < 23000: return (OsSupportStatus.Supported, $"11 Beta Build {windowsVersion.Build}");
-                        case int v when v < 24000: return (OsSupportStatus.Supported, $"11 Dev Build {windowsVersion.Build}");
-                        case int v when v < 25000: return (OsSupportStatus.Supported, $"11 ??? Build {windowsVersion.Build}");
-                        case int v when v < 26000: return (OsSupportStatus.Supported, $"11 Canary Build {windowsVersion.Build}");
+                        case int v when v < 23000: return (OsSupportStatus.Prerelease, $"11 Beta Build {windowsVersion.Build}");
+                        case int v when v < 24000: return (OsSupportStatus.Prerelease, $"11 Dev Build {windowsVersion.Build}");
+                        case int v when v < 25000: return (OsSupportStatus.Prerelease, $"11 ??? Build {windowsVersion.Build}");
+                        case int v when v < 26000: return (OsSupportStatus.Prerelease, $"11 Canary Build {windowsVersion.Build}");
                         default: return (OsSupportStatus.Prerelease, $"11 Unknown/private Build {windowsVersion.Build}");
                     }
                 default:
