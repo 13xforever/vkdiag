@@ -4,6 +4,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Management;
+using System.Reflection;
+using Microsoft.Win32;
 
 namespace VkDiag
 {
@@ -204,6 +206,32 @@ namespace VkDiag
                     }
                 default:
                     return (OsSupportStatus.Unknown, null);
+            }
+        }
+
+        private static bool HasPerformanceModeProfile()
+        {
+            var imagePath = Assembly.GetEntryAssembly().Location;
+            var basePath = @"Software\Microsoft\DirectX\UserGpuPreferences";
+            using (var userGpuPrefs = Registry.CurrentUser.OpenSubKey(basePath, true))
+            {
+                if (userGpuPrefs is null)
+                    return true;
+
+                var globalPrefValue = userGpuPrefs.GetValue("DirectXUserGlobalSettings") as string;
+                if (globalPrefValue?.Contains("GpuPreference=2") ?? false)
+                    return true;
+                
+                var profile = userGpuPrefs.GetValueNames().Any(v => v == imagePath);
+                if (profile)
+                {
+                    var curVal = userGpuPrefs.GetValue(imagePath) as string;
+                    if (curVal?.Contains("GpuPreference=2") ?? false)
+                        return true;
+                }
+                
+                userGpuPrefs.SetValue(imagePath, "GpuPreference=2;");
+                return false;
             }
         }
     }

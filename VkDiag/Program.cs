@@ -14,12 +14,13 @@ namespace VkDiag
 {
     internal static partial class Program
     {
-        private const string VkDiagVersion = "1.1.20";
+        private const string VkDiagVersion = "1.2.0-beta2";
 
         private static bool isAdmin = false;
         private static bool autofix = false;
         private static bool clear = false;
         private static bool disableLayers = false;
+        private static bool ignoreHighPerfCheck = false;
 
         private static bool hasBrokenEntries = false;
         private static bool hasProperVulkanDrivers = false;
@@ -31,6 +32,9 @@ namespace VkDiag
 
         public static async Task Main(string[] args)
         {
+            CheckPermissions();
+            GetOptions(args);
+            
             try
             {
                 Console.Title = "Vulkan Diagnostics Tool v" + VkDiagVersion;
@@ -46,12 +50,30 @@ namespace VkDiag
                 Environment.Exit(-1);
             }
 
-            GetOptions(args);
-            CheckPermissions();
             await CheckVkDiagVersionAsync().ConfigureAwait(false);
             CheckOs();
 
-            CheckGpuDrivers();
+            var hasInactiveGpus = CheckGpuDrivers();
+            if (hasInactiveGpus)
+            {
+                Console.WriteLine();
+                Console.WriteLine("User GPU Preferences:");
+                try
+                {
+                    if (!HasPerformanceModeProfile())
+                    {
+                        WriteLogLine(ConsoleColor.DarkYellow, "x", "Running without High performance GPU profile");
+                        if (!ignoreHighPerfCheck)
+                            Restart(false, false);
+                    }
+                    else
+                        WriteLogLine(ConsoleColor.Green, "+", "Running with High performance GPU profile");
+                }
+                catch
+                {
+                    WriteLogLine(ConsoleColor.DarkYellow, "x", "Failed to set High performance GPU profile");
+                }
+            }
             CheckVulkanMeta();
 
             ShowMenu();
@@ -102,6 +124,7 @@ namespace VkDiag
             var options = new OptionSet
             {
                 {"?|h|help", _ => help = true},
+                {"i|ignore-high-performance-check", _ => ignoreHighPerfCheck = true},
                 {"f|fix", "Remove broken Vulkan entries", _ => autofix = true},
                 {"c|clear-explicit-driver-reg", "Remove explicit Vulkan driver registration", _ => clear = true},
                 {"d|disable-incompatible-layers", "Disable potentially incompatible implicit Vulkan layers", _ => disableLayers = true}
@@ -124,12 +147,15 @@ namespace VkDiag
 
         private static void RestartIfNotElevated() => Restart();
         
-        private static void Restart(bool onlyToElevate = true)
+        private static void Restart(bool onlyToElevate = true, bool requireElevation = true)
         {
             if (isAdmin && onlyToElevate)
                 return;
             
-            Console.WriteLine("Restarting with elevated permissions...");
+            if (requireElevation)
+                Console.WriteLine("Restarting with elevated permissions...");
+            else
+                Console.WriteLine("Restarting...");
             var args = "";
             if (autofix)
                 args += " -f";
@@ -147,7 +173,7 @@ namespace VkDiag
             }
             var psi = new ProcessStartInfo
             {
-                Verb = "runAs",
+                Verb = requireElevation ? "runas" : "open",
                 UseShellExecute = true,
                 FileName = cmd,
                 Arguments = args,

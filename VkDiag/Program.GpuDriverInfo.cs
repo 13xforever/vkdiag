@@ -10,9 +10,20 @@ namespace VkDiag
 {
     internal static partial class Program
     {
-        private static readonly HashSet<string> ServiceBlockList = new HashSet<string> { "BasicDisplay", "WUDFRd", "HyperVideo", "MS Idd Device", };
+        private static readonly HashSet<string> ServiceBlockList = new HashSet<string>
+        {
+            "BasicDisplay",
+            "WUDFRd",
+            "HyperVideo",
+            "MS Idd Device",
+            "IndirectKmd",
+            "spacedesk Graphics Adapter",
+            
+            "LuminonCore IDDCX Adapter",
+            "Parsec Virtual Display Adapter",
+        };
 
-        private static void CheckGpuDrivers()
+        private static bool CheckGpuDrivers()
         {
             var gpuGuidList = new HashSet<string>();
             var inactiveGpuGuidList = new HashSet<string>();
@@ -30,31 +41,30 @@ namespace VkDiag
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine("Failed to enumerate GPU drivers");
                     Console.ForegroundColor = defaultFgColor;
-                    return;
+                    return false;
                 }
 
                 foreach (var gpuGuid in videoKey.GetSubKeyNames())
                     using (var gpuKey = videoKey.OpenSubKey(gpuGuid))
                     {
-                        var gpuSubKeys = gpuKey?.GetSubKeyNames() ?? Array.Empty<string>();
-                        if (gpuSubKeys.Contains("Video"))
-                        {
-                            if (gpuSubKeys.Contains("0000"))
+                        if (gpuKey is null)
+                            continue;
+                        
+                        var gpuSubKeys = gpuKey.GetSubKeyNames();
+                        if (!gpuSubKeys.Contains("Video"))
+                            continue;
+
+                        if (gpuSubKeys.Contains("0000"))
+                            gpuGuidList.Add(gpuGuid);
+                        else
+                            using (var videoSubKey = gpuKey.OpenSubKey("Video"))
                             {
-                                gpuGuidList.Add(gpuGuid);
-                            }
-                            else
-                            {
-                                using (var videoSubKey = gpuKey.OpenSubKey("Video"))
+                                if ((videoSubKey?.GetValueNames().Contains("Service") ?? false)
+                                    && !ServiceBlockList.Contains(videoSubKey.GetValue("Service")))
                                 {
-                                    if ((videoSubKey?.GetValueNames().Contains("Service") ?? false)
-                                        && !ServiceBlockList.Contains(videoSubKey.GetValue("Service")))
-                                    {
-                                        inactiveGpuGuidList.Add(gpuGuid);
-                                    }
+                                    inactiveGpuGuidList.Add(gpuGuid);
                                 }
                             }
-                        }
                     }
                 Console.WriteLine();
                 Console.WriteLine($"Found {gpuGuidList.Count} active GPU{(gpuGuidList.Count == 1 ? "" : "s")}:");
@@ -71,7 +81,7 @@ namespace VkDiag
                         {
                             using (var gpuVideoKey = gpuKey.OpenSubKey("Video"))
                                 name = ((string)gpuVideoKey?.GetValue("DeviceDesc"))?.Split(';').Last()
-                                       ?? ((string)gpuVideoKey?.GetValue("Service"))
+                                       ?? (string)gpuVideoKey?.GetValue("Service")
                                        ?? gpuGuid;
                             WriteLogLine(defaultFgColor, "-", name);
                         }
@@ -214,6 +224,8 @@ namespace VkDiag
                         }
                     }
             }
+
+            return inactiveGpuGuidList.Count > 0;
         }
     }
 }
