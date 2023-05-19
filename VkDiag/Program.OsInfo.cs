@@ -16,8 +16,9 @@ namespace VkDiag
             ["1"] = new Version(1, 2, 141, 0),
         };
 
-        private static void CheckOs()
+        private static Version CheckOs()
         {
+            Version osVer = default;
             try
             {
                 var scope = ManagementPath.DefaultPath.ToString();
@@ -58,7 +59,7 @@ namespace VkDiag
                         var status = "+";
                         var verStatus = "+";
                         var osStatus = OsSupportStatus.Unknown;
-                        if (Version.TryParse(osVersion, out var osVer))
+                        if (Version.TryParse(osVersion, out osVer))
                         {
                             string osVerName;
                             (osStatus, osVerName) = GetWindowsInfo(osVer);
@@ -141,6 +142,7 @@ namespace VkDiag
             {
                 WriteLogLine(ConsoleColor.DarkYellow, "x", "Failed to get system Vulkan loader info");
             }
+            return osVer;
         }
 
         private static (OsSupportStatus status, string name) GetWindowsInfo(Version windowsVersion)

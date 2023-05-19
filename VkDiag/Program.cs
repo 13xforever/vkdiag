@@ -51,10 +51,10 @@ namespace VkDiag
             }
 
             await CheckVkDiagVersionAsync().ConfigureAwait(false);
-            CheckOs();
+            var osVer = CheckOs();
 
             var hasInactiveGpus = CheckGpuDrivers();
-            if (hasInactiveGpus)
+            if (hasInactiveGpus && osVer.Major >= 10)
             {
                 Console.WriteLine();
                 Console.WriteLine("User GPU Preferences:");
