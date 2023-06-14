@@ -191,7 +191,7 @@ namespace VkDiag
                         case 19041: return (OsSupportStatus.Deprecated, "10 2004");
                         case 19042: return (OsSupportStatus.Deprecated, "10 20H2");
                         case 19043: return (OsSupportStatus.Deprecated, "10 21H1");
-                        case 19044: return (OsSupportStatus.Supported, "10 21H2");
+                        case 19044: return (OsSupportStatus.Deprecated, "10 21H2");
                         case 19045: return (OsSupportStatus.Supported, "10 22H2");
                         
                         // https://learn.microsoft.com/en-us/lifecycle/products/windows-11-home-and-pro
