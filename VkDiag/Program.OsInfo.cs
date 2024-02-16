@@ -204,7 +204,8 @@ namespace VkDiag
                         case int v when v < 23000: return (OsSupportStatus.Prerelease, $"11 Beta Build {windowsVersion.Build}");
                         case int v when v < 24000: return (OsSupportStatus.Prerelease, $"11 Dev Build {windowsVersion.Build}");
                         case int v when v < 25000: return (OsSupportStatus.Prerelease, $"11 ??? Build {windowsVersion.Build}");
-                        case int v when v < 26000: return (OsSupportStatus.Prerelease, $"11 Canary Build {windowsVersion.Build}");
+                        case int v when v < 26052: return (OsSupportStatus.Prerelease, $"11 Canary Build {windowsVersion.Build}");
+                        case int v when v < 27000: return (OsSupportStatus.Prerelease, $"11 Dev/Canary Build {windowsVersion.Build}");
                         default: return (OsSupportStatus.Prerelease, $"11 Unknown/private Build {windowsVersion.Build}");
                     }
                 default:
