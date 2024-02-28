@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Windows.Win32;
-using Windows.Win32.Foundation;
 using VkDiag.Interop;
 
 namespace VkDiag;
@@ -13,7 +11,7 @@ internal static partial class Program
         ("Microsoft.D3DMappingLayers_8wekyb3d8bbwe", "OpenCL, OpenGL, and Vulkan Compatibility Pack"),
     ];
     
-    private static unsafe void CheckAppxPackages()
+    private static void CheckAppxPackages()
     {
         var found = new List<(string name, string version)>();
         foreach (var pkg in KnownPackages)
