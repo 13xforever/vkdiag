@@ -22,14 +22,12 @@ internal static partial class Program
         try
         {
             var scope = ManagementPath.DefaultPath.ToString();
-            using (var searcher = new ManagementObjectSearcher(scope, "SELECT Name FROM CIM_Processor"))
-            using (var collection = searcher.Get())
+            using var searcher = new ManagementObjectSearcher(scope, "SELECT Name FROM CIM_Processor");
+            using var collection = searcher.Get();
+            foreach (var cpui in collection)
             {
-                foreach (var cpui in collection)
-                {
-                    var cpuName = cpui.GetPropertyValue("Name") as string;
-                    WriteLogLine(ConsoleColor.Cyan, "i", "CPU: " + cpuName);
-                }
+                var cpuName = cpui.GetPropertyValue("Name") as string;
+                WriteLogLine(ConsoleColor.Cyan, "i", "CPU: " + cpuName);
             }
         }
 #if DEBUG

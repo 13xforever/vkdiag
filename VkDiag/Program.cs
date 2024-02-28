@@ -14,7 +14,7 @@ namespace VkDiag;
 
 internal static partial class Program
 {
-    private const string VkDiagVersion = "1.2.3";
+    private const string VkDiagVersion = "1.3.0";
 
     private static bool isAdmin = false;
     private static bool autofix = false;
@@ -52,6 +52,8 @@ internal static partial class Program
 
         await CheckVkDiagVersionAsync().ConfigureAwait(false);
         var osVer = CheckOs();
+        if (osVer.Major >= 10)
+            try { CheckAppxPackages(); } catch { }
 
         var hasInactiveGpus = CheckGpuDrivers();
         if (hasInactiveGpus && osVer.Major >= 10)

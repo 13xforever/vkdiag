@@ -1,0 +1,9 @@
+FindPackagesByPackageFamily
+PACKAGE_*
+
+OpenPackageInfoByFullName
+ClosePackageInfo
+GetPackageInfo 
+GetPackageId
+
+SHLoadIndirectString
