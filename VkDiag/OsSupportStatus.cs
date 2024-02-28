@@ -1,10 +1,9 @@
-namespace VkDiag
+namespace VkDiag;
+
+public enum OsSupportStatus
 {
-    public enum OsSupportStatus
-    {
-        Unknown,
-        Supported,
-        Prerelease,
-        Deprecated,
-    }
+    Unknown,
+    Supported,
+    Prerelease,
+    Deprecated,
 }

@@ -1,12 +1,12 @@
 using System.Text;
 using System.Text.Json;
 
-namespace VkDiag
+namespace VkDiag;
+
+public class SnakeCasePolicy : JsonNamingPolicy
 {
-    public class SnakeCasePolicy : JsonNamingPolicy
+    public override string ConvertName(string name)
     {
-        public override string ConvertName(string name)
-        {
             var result = new StringBuilder(name.Length + 3);
             for (var i = 0; i < name.Length; i++)
             {
@@ -24,5 +24,4 @@ namespace VkDiag
             }
             return result.ToString();
         }
-    }
 }

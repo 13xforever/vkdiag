@@ -10,243 +10,242 @@ using System.Threading.Tasks;
 using Mono.Options;
 using VkDiag.POCOs;
 
-namespace VkDiag
+namespace VkDiag;
+
+internal static partial class Program
 {
-    internal static partial class Program
+    private const string VkDiagVersion = "1.2.3";
+
+    private static bool isAdmin = false;
+    private static bool autofix = false;
+    private static bool clear = false;
+    private static bool disableLayers = false;
+    private static bool ignoreHighPerfCheck = false;
+
+    private static bool hasBrokenEntries = false;
+    private static bool hasProperVulkanDrivers = false;
+    private static bool hasExplicitDriverReg = false;
+    private static bool hasConflictingLayers = false;
+    private static bool disabledConflictingLayers = true;
+    private static bool removedExplicitDriverReg = true;
+    private static bool fixedEverything = true;
+
+    public static async Task Main(string[] args)
     {
-        private const string VkDiagVersion = "1.2.3";
-
-        private static bool isAdmin = false;
-        private static bool autofix = false;
-        private static bool clear = false;
-        private static bool disableLayers = false;
-        private static bool ignoreHighPerfCheck = false;
-
-        private static bool hasBrokenEntries = false;
-        private static bool hasProperVulkanDrivers = false;
-        private static bool hasExplicitDriverReg = false;
-        private static bool hasConflictingLayers = false;
-        private static bool disabledConflictingLayers = true;
-        private static bool removedExplicitDriverReg = true;
-        private static bool fixedEverything = true;
-
-        public static async Task Main(string[] args)
+        CheckPermissions();
+        GetOptions(args);
+            
+        try
         {
-            CheckPermissions();
-            GetOptions(args);
+            Console.Title = "Vulkan Diagnostics Tool v" + VkDiagVersion;
+            Console.WindowWidth = Math.Min(Console.LargestWindowWidth, 100);
+            Console.WindowHeight = Math.Min(Console.LargestWindowHeight, 60);
+            Console.BufferWidth = Console.WindowWidth;
+        }
+        catch {}
             
-            try
-            {
-                Console.Title = "Vulkan Diagnostics Tool v" + VkDiagVersion;
-                Console.WindowWidth = Math.Min(Console.LargestWindowWidth, 100);
-                Console.WindowHeight = Math.Min(Console.LargestWindowHeight, 60);
-                Console.BufferWidth = Console.WindowWidth;
-            }
-            catch {}
-            
-            if (!Environment.Is64BitOperatingSystem)
-            {
-                Console.WriteLine("Only 64-bit OS is supported");
-                Environment.Exit(-1);
-            }
-
-            await CheckVkDiagVersionAsync().ConfigureAwait(false);
-            var osVer = CheckOs();
-
-            var hasInactiveGpus = CheckGpuDrivers();
-            if (hasInactiveGpus && osVer.Major >= 10)
-            {
-                Console.WriteLine();
-                Console.WriteLine("User GPU Preferences:");
-                try
-                {
-                    if (!HasPerformanceModeProfile())
-                    {
-                        WriteLogLine(ConsoleColor.DarkYellow, "x", "Running without High performance GPU profile");
-                        if (!ignoreHighPerfCheck)
-                            Restart(false, false);
-                    }
-                    else
-                        WriteLogLine(ConsoleColor.Green, "+", "Running with High performance GPU profile");
-                }
-                catch
-                {
-                    WriteLogLine(ConsoleColor.DarkYellow, "x", "Failed to set High performance GPU profile");
-                }
-            }
-            CheckVulkanMeta();
-
-            ShowMenu();
+        if (!Environment.Is64BitOperatingSystem)
+        {
+            Console.WriteLine("Only 64-bit OS is supported");
+            Environment.Exit(-1);
         }
 
-        private static async Task CheckVkDiagVersionAsync()
+        await CheckVkDiagVersionAsync().ConfigureAwait(false);
+        var osVer = CheckOs();
+
+        var hasInactiveGpus = CheckGpuDrivers();
+        if (hasInactiveGpus && osVer.Major >= 10)
         {
+            Console.WriteLine();
+            Console.WriteLine("User GPU Preferences:");
             try
             {
-                using (var client = new HttpClient())
+                if (!HasPerformanceModeProfile())
                 {
-                    var curVerParts = VkDiagVersion.Split(new[] {' ', '-'}, 2);
-                    client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("vkdiag", curVerParts[0]));
-                    var responseJson = await client.GetStringAsync("https://api.github.com/repos/13xforever/vkdiag/releases").ConfigureAwait(false);
-                    var releaseList = JsonSerializer.Deserialize<List<GitHubReleaseInfo>>(responseJson, JsonOptions);
-                    releaseList = releaseList?.OrderByDescending(r => Version.TryParse(r.TagName.TrimStart('v'), out var v) ? v : null).ToList();
-                    var latest = releaseList?.FirstOrDefault(r => !r.Prerelease);
-                    var latestBeta = releaseList?.FirstOrDefault(r => r.Prerelease);
-                    Version.TryParse(curVerParts[0], out var curVer);
-                    Version.TryParse(latest?.TagName.TrimStart('v') ?? "0", out var latestVer);
-                    var latestBetaParts = latestBeta?.TagName.Split(new[] {' ', '-'}, 2);
-                    Version.TryParse(latestBetaParts?[0] ?? "0", out var latestBetaVer);
-                    if (latestVer > curVer || latestVer == curVer && curVerParts.Length > 1)
-                    {
-                        WriteLogLine(ConsoleColor.DarkYellow, "!", "VkDiag version: " + VkDiagVersion);
-                        WriteLogLine(ConsoleColor.DarkYellow, "!", $"    Newer version available: {latestVer}");
-                    }
-                    else
-                        WriteLogLine(ConsoleColor.Green, "+", "VkDiag version: " + VkDiagVersion);
-                    if (latestBetaVer > latestVer
-                        || (latestVer == latestBetaVer
-                            && curVerParts.Length > 1
-                            && (latestBetaParts?.Length > 1 && latestBetaParts[1] != curVerParts[1]
-                                || (latestBetaParts?.Length ?? 0) == 0)))
-                        WriteLogLine(defaultFgColor, "+", $"    Newer prerelease version available: {latestBetaVer}");
+                    WriteLogLine(ConsoleColor.DarkYellow, "x", "Running without High performance GPU profile");
+                    if (!ignoreHighPerfCheck)
+                        Restart(false, false);
                 }
+                else
+                    WriteLogLine(ConsoleColor.Green, "+", "Running with High performance GPU profile");
             }
             catch
             {
-                WriteLogLine(defaultFgColor, "+", "VkDiag version: " + VkDiagVersion);
-                WriteLogLine(ConsoleColor.DarkYellow, "!", $"    Failed to check for updates");
+                WriteLogLine(ConsoleColor.DarkYellow, "x", "Failed to set High performance GPU profile");
             }
         }
+        CheckVulkanMeta();
 
-        private static void GetOptions(string[] args)
+        ShowMenu();
+    }
+
+    private static async Task CheckVkDiagVersionAsync()
+    {
+        try
         {
-            var help = false;
-            var options = new OptionSet
+            using (var client = new HttpClient())
             {
-                {"?|h|help", _ => help = true},
-                {"i|ignore-high-performance-check", _ => ignoreHighPerfCheck = true},
-                {"f|fix", "Remove broken Vulkan entries", _ => autofix = true},
-                {"c|clear-explicit-driver-reg", "Remove explicit Vulkan driver registration", _ => clear = true},
-                {"d|disable-incompatible-layers", "Disable potentially incompatible implicit Vulkan layers", _ => disableLayers = true}
-            };
-            options.Parse(args);
-
-            if (help)
-            {
-                Console.WriteLine("RPCS3 Vulkan diagnostics tool");
-                Console.WriteLine("Usage:");
-                Console.WriteLine("  vkdiag [OPTIONS]");
-                Console.WriteLine("Available options:");
-                options.WriteOptionDescriptions(Console.Out);
-                Environment.Exit(0);
+                var curVerParts = VkDiagVersion.Split(new[] {' ', '-'}, 2);
+                client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("vkdiag", curVerParts[0]));
+                var responseJson = await client.GetStringAsync("https://api.github.com/repos/13xforever/vkdiag/releases").ConfigureAwait(false);
+                var releaseList = JsonSerializer.Deserialize<List<GitHubReleaseInfo>>(responseJson, JsonOptions);
+                releaseList = releaseList?.OrderByDescending(r => Version.TryParse(r.TagName.TrimStart('v'), out var v) ? v : null).ToList();
+                var latest = releaseList?.FirstOrDefault(r => !r.Prerelease);
+                var latestBeta = releaseList?.FirstOrDefault(r => r.Prerelease);
+                Version.TryParse(curVerParts[0], out var curVer);
+                Version.TryParse(latest?.TagName.TrimStart('v') ?? "0", out var latestVer);
+                var latestBetaParts = latestBeta?.TagName.Split(new[] {' ', '-'}, 2);
+                Version.TryParse(latestBetaParts?[0] ?? "0", out var latestBetaVer);
+                if (latestVer > curVer || latestVer == curVer && curVerParts.Length > 1)
+                {
+                    WriteLogLine(ConsoleColor.DarkYellow, "!", "VkDiag version: " + VkDiagVersion);
+                    WriteLogLine(ConsoleColor.DarkYellow, "!", $"    Newer version available: {latestVer}");
+                }
+                else
+                    WriteLogLine(ConsoleColor.Green, "+", "VkDiag version: " + VkDiagVersion);
+                if (latestBetaVer > latestVer
+                    || (latestVer == latestBetaVer
+                        && curVerParts.Length > 1
+                        && (latestBetaParts?.Length > 1 && latestBetaParts[1] != curVerParts[1]
+                            || (latestBetaParts?.Length ?? 0) == 0)))
+                    WriteLogLine(defaultFgColor, "+", $"    Newer prerelease version available: {latestBetaVer}");
             }
         }
-
-        private static void CheckPermissions()
-            => isAdmin = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
-
-        private static void RestartIfNotElevated() => Restart();
-        
-        private static void Restart(bool onlyToElevate = true, bool requireElevation = true)
+        catch
         {
-            if (isAdmin && onlyToElevate)
-                return;
-            
-            if (requireElevation)
-                Console.WriteLine("Restarting with elevated permissions...");
-            else
-                Console.WriteLine("Restarting...");
-            var args = "";
-            if (autofix)
-                args += " -f";
-            if (clear)
-                args += " -c";
-            if (disableLayers)
-                args += " -d";
-            args = args.TrimStart();
-            var cmd = Environment.GetCommandLineArgs()[0];
-            var wtProfile = Environment.GetEnvironmentVariable("WT_PROFILE_ID");
-            if (!string.IsNullOrEmpty(wtProfile))
-            {
-                args = $"\"{cmd}\" {args}";
-                cmd = "wt";
-            }
-            var psi = new ProcessStartInfo
-            {
-                Verb = requireElevation ? "runas" : "open",
-                UseShellExecute = true,
-                FileName = cmd,
-                Arguments = args,
-            };
-            Process.Start(psi);
+            WriteLogLine(defaultFgColor, "+", "VkDiag version: " + VkDiagVersion);
+            WriteLogLine(ConsoleColor.DarkYellow, "!", $"    Failed to check for updates");
+        }
+    }
+
+    private static void GetOptions(string[] args)
+    {
+        var help = false;
+        var options = new OptionSet
+        {
+            {"?|h|help", _ => help = true},
+            {"i|ignore-high-performance-check", _ => ignoreHighPerfCheck = true},
+            {"f|fix", "Remove broken Vulkan entries", _ => autofix = true},
+            {"c|clear-explicit-driver-reg", "Remove explicit Vulkan driver registration", _ => clear = true},
+            {"d|disable-incompatible-layers", "Disable potentially incompatible implicit Vulkan layers", _ => disableLayers = true}
+        };
+        options.Parse(args);
+
+        if (help)
+        {
+            Console.WriteLine("RPCS3 Vulkan diagnostics tool");
+            Console.WriteLine("Usage:");
+            Console.WriteLine("  vkdiag [OPTIONS]");
+            Console.WriteLine("Available options:");
+            options.WriteOptionDescriptions(Console.Out);
             Environment.Exit(0);
         }
+    }
 
-        private static void ShowMenu()
+    private static void CheckPermissions()
+        => isAdmin = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
+
+    private static void RestartIfNotElevated() => Restart();
+        
+    private static void Restart(bool onlyToElevate = true, bool requireElevation = true)
+    {
+        if (isAdmin && onlyToElevate)
+            return;
+            
+        if (requireElevation)
+            Console.WriteLine("Restarting with elevated permissions...");
+        else
+            Console.WriteLine("Restarting...");
+        var args = "";
+        if (autofix)
+            args += " -f";
+        if (clear)
+            args += " -c";
+        if (disableLayers)
+            args += " -d";
+        args = args.TrimStart();
+        var cmd = Environment.GetCommandLineArgs()[0];
+        var wtProfile = Environment.GetEnvironmentVariable("WT_PROFILE_ID");
+        if (!string.IsNullOrEmpty(wtProfile))
         {
-            var menu = new List<(char key, string prompt)>();
-            if (hasBrokenEntries && !fixedEverything)
-                menu.Add(('f', "Remove broken entries"));
-            if (hasConflictingLayers && !disabledConflictingLayers)
-                menu.Add(('d', "Disable incompatible Vulkan layers"));
-            if (hasExplicitDriverReg && hasProperVulkanDrivers)
-                menu.Add(('c', "Clear explicit (legacy) Vulkan driver registration"));
-            if (menu.Count > 1)
-                menu.Add(('a', "All of the above"));
-            if (menu.Count > 0)
-            {
-                menu.Add(('n', "Do nothing and exit (default)"));
-                var validResponses = new HashSet<char>{'\r', '\n'};
+            args = $"\"{cmd}\" {args}";
+            cmd = "wt";
+        }
+        var psi = new ProcessStartInfo
+        {
+            Verb = requireElevation ? "runas" : "open",
+            UseShellExecute = true,
+            FileName = cmd,
+            Arguments = args,
+        };
+        Process.Start(psi);
+        Environment.Exit(0);
+    }
+
+    private static void ShowMenu()
+    {
+        var menu = new List<(char key, string prompt)>();
+        if (hasBrokenEntries && !fixedEverything)
+            menu.Add(('f', "Remove broken entries"));
+        if (hasConflictingLayers && !disabledConflictingLayers)
+            menu.Add(('d', "Disable incompatible Vulkan layers"));
+        if (hasExplicitDriverReg && hasProperVulkanDrivers)
+            menu.Add(('c', "Clear explicit (legacy) Vulkan driver registration"));
+        if (menu.Count > 1)
+            menu.Add(('a', "All of the above"));
+        if (menu.Count > 0)
+        {
+            menu.Add(('n', "Do nothing and exit (default)"));
+            var validResponses = new HashSet<char>{'\r', '\n'};
                 
-                Console.WriteLine();
-                Console.WriteLine("Remember to screenshot or copy this screen content for support.");
-                Console.WriteLine();
-                Console.WriteLine("There are some issues, what would you like to do?");
-                foreach (var (key, prompt) in menu)
-                {
-                    WriteLogLine(ConsoleColor.Cyan, key.ToString(), prompt);
-                    validResponses.Add(key);
-                }
-                Console.Write("Selected option: ");
-                char result;
-                do
-                {
-                    var key = Console.ReadKey(true);
-                    result = char.ToLower(key.KeyChar);
-                } while (!validResponses.Contains(result));
-                switch (result)
-                {
-                    case 'a':
-                        if (validResponses.Contains('f'))
-                            autofix = true;
-                        if (validResponses.Contains('d'))
-                            disableLayers = true;
-                        if (validResponses.Contains('c'))
-                            clear = true;
-                        break;
-                    case 'f':
-                        autofix = true;
-                        break;
-                    case 'd':
-                        disableLayers = true;
-                        break;
-                    case 'c':
-                        clear = true;
-                        break;
-                    default:
-                        Environment.Exit(0);
-                        break;
-                }
-                Restart(false);
-                Environment.Exit(0);
-            }
-            Console.WriteLine("Everything seems to be fine.");
             Console.WriteLine();
             Console.WriteLine("Remember to screenshot or copy this screen content for support.");
             Console.WriteLine();
-            Console.WriteLine("Press any key to exit the tool...");
-            Console.ReadKey();
+            Console.WriteLine("There are some issues, what would you like to do?");
+            foreach (var (key, prompt) in menu)
+            {
+                WriteLogLine(ConsoleColor.Cyan, key.ToString(), prompt);
+                validResponses.Add(key);
+            }
+            Console.Write("Selected option: ");
+            char result;
+            do
+            {
+                var key = Console.ReadKey(true);
+                result = char.ToLower(key.KeyChar);
+            } while (!validResponses.Contains(result));
+            switch (result)
+            {
+                case 'a':
+                    if (validResponses.Contains('f'))
+                        autofix = true;
+                    if (validResponses.Contains('d'))
+                        disableLayers = true;
+                    if (validResponses.Contains('c'))
+                        clear = true;
+                    break;
+                case 'f':
+                    autofix = true;
+                    break;
+                case 'd':
+                    disableLayers = true;
+                    break;
+                case 'c':
+                    clear = true;
+                    break;
+                default:
+                    Environment.Exit(0);
+                    break;
+            }
+            Restart(false);
             Environment.Exit(0);
         }
+        Console.WriteLine("Everything seems to be fine.");
+        Console.WriteLine();
+        Console.WriteLine("Remember to screenshot or copy this screen content for support.");
+        Console.WriteLine();
+        Console.WriteLine("Press any key to exit the tool...");
+        Console.ReadKey();
+        Environment.Exit(0);
     }
 }
