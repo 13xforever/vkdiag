@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Principal;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Mono.Options;
@@ -14,7 +15,7 @@ namespace VkDiag;
 
 internal static partial class Program
 {
-    private const string VkDiagVersion = "1.3.0";
+    private const string VkDiagVersion = "1.3.1";
 
     private static bool isAdmin = false;
     private static bool autofix = false;
@@ -41,6 +42,7 @@ internal static partial class Program
             Console.WindowWidth = Math.Min(Console.LargestWindowWidth, 100);
             Console.WindowHeight = Math.Min(Console.LargestWindowHeight, 60);
             Console.BufferWidth = Console.WindowWidth;
+            Console.OutputEncoding = Encoding.UTF8;
         }
         catch {}
             
