@@ -11,9 +11,9 @@ namespace VkDiag;
 
 internal static partial class Program
 {
-    private static readonly Dictionary<string, Version> VulkanLoaderExpectedVersions = new Dictionary<string, Version>
+    private static readonly Dictionary<string, Version> VulkanLoaderExpectedVersions = new()
     {
-        ["1"] = new Version(1, 2, 141, 0),
+        ["1"] = new(1, 2, 141, 0),
     };
 
     private static Version CheckOs()
@@ -24,9 +24,9 @@ internal static partial class Program
             var scope = ManagementPath.DefaultPath.ToString();
             using var searcher = new ManagementObjectSearcher(scope, "SELECT Name FROM CIM_Processor");
             using var collection = searcher.Get();
-            foreach (var cpui in collection)
+            foreach (var cpuInfo in collection)
             {
-                var cpuName = cpui.GetPropertyValue("Name") as string;
+                var cpuName = cpuInfo.GetPropertyValue("Name") as string;
                 WriteLogLine(ConsoleColor.Cyan, "i", "CPU: " + cpuName);
             }
         }
@@ -45,52 +45,49 @@ internal static partial class Program
         try
         {
             var scope = ManagementPath.DefaultPath.ToString();
-            using (var searcher = new ManagementObjectSearcher(scope, "SELECT Caption, Version FROM CIM_OperatingSystem"))
-            using (var collection = searcher.Get())
+            using var searcher = new ManagementObjectSearcher(scope, "SELECT Caption, Version FROM CIM_OperatingSystem");
+            using var collection = searcher.Get();
+            foreach (var osi in collection)
             {
-                foreach (var osi in collection)
+                var osName = osi.GetPropertyValue("Caption") as string;
+                var osVersion = osi.GetPropertyValue("Version") as string ?? "";
+                var color = DefaultFgColor;
+                var verColor = color;
+                var status = "+";
+                var verStatus = "+";
+                var osStatus = OsSupportStatus.Unknown;
+                if (Version.TryParse(osVersion, out osVer))
                 {
-                    var osName = osi.GetPropertyValue("Caption") as string;
-                    var osVersion = osi.GetPropertyValue("Version") as string ?? "";
-                    var color = defaultFgColor;
-                    var verColor = color;
-                    var status = "+";
-                    var verStatus = "+";
-                    var osStatus = OsSupportStatus.Unknown;
-                    if (Version.TryParse(osVersion, out osVer))
-                    {
-                        string osVerName;
-                        (osStatus, osVerName) = GetWindowsInfo(osVer);
-                        if (!string.IsNullOrEmpty(osVerName))
-                            osVersion += $" (Windows {osVerName})";
-                    }
-                    if (osStatus != OsSupportStatus.Unknown)
-                    {
-                        if (osStatus == OsSupportStatus.Deprecated)
-                        {
-                            color = ConsoleColor.DarkYellow;
-                            status = "!";
-                            verColor = color;
-                            verStatus = status;
-                        }
-                        else if (osStatus == OsSupportStatus.Prerelease)
-                        {
-                            verColor = ConsoleColor.DarkYellow;
-                            verStatus = "!";
-                        }
-                        else
-                        {
-                            color = ConsoleColor.Green;
-                            verColor = color;
-                        }
-                    }
-                    WriteLogLine(color, status, "OS: " + osName);
-                    WriteLogLine(verColor, verStatus, "Version: " + osVersion);
-                    if (osStatus == OsSupportStatus.Deprecated)
-                        WriteLogLine(verColor, "!", "    This version of Windows has reached the End of Service status for mainstream support");
-                    else if (osStatus == OsSupportStatus.Prerelease)
-                        WriteLogLine(verColor, "!", "    This version of Windows is a pre-release software and may contain all kinds of issues");
+                    (osStatus, var osVerName) = GetWindowsInfo(osVer);
+                    if (!string.IsNullOrEmpty(osVerName))
+                        osVersion += $" (Windows {osVerName})";
                 }
+                if (osStatus != OsSupportStatus.Unknown)
+                {
+                    if (osStatus == OsSupportStatus.Deprecated)
+                    {
+                        color = ConsoleColor.DarkYellow;
+                        status = "!";
+                        verColor = color;
+                        verStatus = status;
+                    }
+                    else if (osStatus == OsSupportStatus.Prerelease)
+                    {
+                        verColor = ConsoleColor.DarkYellow;
+                        verStatus = "!";
+                    }
+                    else
+                    {
+                        color = ConsoleColor.Green;
+                        verColor = color;
+                    }
+                }
+                WriteLogLine(color, status, "OS: " + osName);
+                WriteLogLine(verColor, verStatus, "Version: " + osVersion);
+                if (osStatus == OsSupportStatus.Deprecated)
+                    WriteLogLine(verColor, "!", "    This version of Windows has reached the End of Service status for mainstream support");
+                else if (osStatus == OsSupportStatus.Prerelease)
+                    WriteLogLine(verColor, "!", "    This version of Windows is a pre-release software and may contain all kinds of issues");
             }
         }
 #if DEBUG
@@ -123,7 +120,7 @@ internal static partial class Program
                         if (!string.IsNullOrEmpty(libVerInfo.FileVersion))
                         {
                             var abiVersion = Path.GetFileNameWithoutExtension(libPath).Split('-').Last();
-                            var color = defaultFgColor;
+                            var color = DefaultFgColor;
                             if (Version.TryParse(libVerInfo.FileVersion, out var libDllVersion)
                                 && VulkanLoaderExpectedVersions.TryGetValue(abiVersion, out var expectedVersion)
                                 && libDllVersion >= expectedVersion)
@@ -214,27 +211,27 @@ internal static partial class Program
 
     private static bool HasPerformanceModeProfile()
     {
-        var imagePath = Assembly.GetEntryAssembly().Location;
-        var basePath = @"Software\Microsoft\DirectX\UserGpuPreferences";
-        using (var userGpuPrefs = Registry.CurrentUser.OpenSubKey(basePath, true))
-        {
-            if (userGpuPrefs is null)
-                return true;
-
-            var globalPrefValue = userGpuPrefs.GetValue("DirectXUserGlobalSettings") as string;
-            if (globalPrefValue?.Contains("GpuPreference=2") ?? false)
-                return true;
-                
-            var profile = userGpuPrefs.GetValueNames().Any(v => v == imagePath);
-            if (profile)
-            {
-                var curVal = userGpuPrefs.GetValue(imagePath) as string;
-                if (curVal?.Contains("GpuPreference=2") ?? false)
-                    return true;
-            }
-                
-            userGpuPrefs.SetValue(imagePath, "GpuPreference=2;");
+        if (Assembly.GetEntryAssembly()?.Location is not { } imagePath)
             return false;
+        
+        var basePath = @"Software\Microsoft\DirectX\UserGpuPreferences";
+        using var userGpuPrefs = Registry.CurrentUser.OpenSubKey(basePath, true);
+        if (userGpuPrefs is null)
+            return true;
+
+        var globalPrefValue = userGpuPrefs.GetValue("DirectXUserGlobalSettings") as string;
+        if (globalPrefValue?.Contains("GpuPreference=2") ?? false)
+            return true;
+                
+        var profile = userGpuPrefs.GetValueNames().Any(v => v == imagePath);
+        if (profile)
+        {
+            var curVal = userGpuPrefs.GetValue(imagePath) as string;
+            if (curVal?.Contains("GpuPreference=2") ?? false)
+                return true;
         }
+                
+        userGpuPrefs.SetValue(imagePath, "GpuPreference=2;");
+        return false;
     }
 }

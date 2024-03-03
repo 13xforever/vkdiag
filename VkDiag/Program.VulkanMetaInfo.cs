@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Win32;
@@ -12,13 +11,14 @@ namespace VkDiag;
 
 internal static partial class Program
 {
-    private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = new SnakeCasePolicy(),
         WriteIndented = true,
     };
 
-    private static readonly Dictionary<string, Version> KnownProblematicLayers = new Dictionary<string, Version>
+    // ReSharper disable StringLiteralTypo
+    private static readonly Dictionary<string, Version> KnownProblematicLayers = new()
     {
         ["MirillisActionVulkanLayer.json"] = null,
         ["ow-vulkan-overlay64.json"] = null,
@@ -30,11 +30,12 @@ internal static partial class Program
         ["playclawvk32.json"] = null,
         ["VK_LAYER_FCAT_DT_overlay_JSON_x64.json"] = null,
         ["VK_LAYER_FCAT_DT_overlay_JSON_x86.json"] = null,
-        ["bdcamvk64.json"] = new Version(1, 1, 0, 111),
-        ["bdcamvk32.json"] = new Version(1, 1, 0, 111),
-        ["obs-vulkan64.json"] = new Version(1, 2, 2, 0),
-        ["obs-vulkan32.json"] = new Version(1, 2, 2, 0),
+        ["bdcamvk64.json"] = new(1, 1, 0, 111),
+        ["bdcamvk32.json"] = new(1, 1, 0, 111),
+        ["obs-vulkan64.json"] = new(1, 2, 2, 0),
+        ["obs-vulkan32.json"] = new(1, 2, 2, 0),
     };
+    // ReSharper restore StringLiteralTypo
         
     private static void CheckVulkanMeta()
     {
@@ -45,56 +46,56 @@ internal static partial class Program
         var removedBroken = true;
         clear &= hasProperVulkanDrivers;
         foreach (var basePath in basePaths)
-            using (var driversKey = Registry.LocalMachine.OpenSubKey(Path.Combine(basePath, "Drivers"), autofix || clear))
-            {
-                if (driversKey == null)
-                    continue;
+        {
+            using var driversKey = Registry.LocalMachine.OpenSubKey(Path.Combine(basePath, "Drivers"), autofix || clear);
+            if (driversKey == null)
+                continue;
 
-                var entries = driversKey.GetValueNames();
-                foreach (var driverPath in entries)
+            var entries = driversKey.GetValueNames();
+            foreach (var driverPath in entries)
+            {
+                if (File.Exists(driverPath))
                 {
-                    if (File.Exists(driverPath))
+                    hasExplicitDriverReg = true;
+                    if (clear)
                     {
-                        hasExplicitDriverReg = true;
-                        if (clear)
+                        RestartIfNotElevated();
+                        try
                         {
-                            RestartIfNotElevated();
-                            try
-                            {
-                                driversKey.DeleteValue(driverPath);
-                            }
-                            catch
-                            {
-                                removedExplicitDriverReg = false;
+                            driversKey.DeleteValue(driverPath);
+                        }
+                        catch
+                        {
+                            removedExplicitDriverReg = false;
 #if DEBUG
                                 WriteLogLine(ConsoleColor.Red, "x", $"Failed to fix {driversKey} @{driverPath}");
 #endif
-                            }
+                        }
+                    }
+                }
+                else
+                {
+                    hasBrokenEntries = broken = true;
+                    if (autofix)
+                    {
+                        RestartIfNotElevated();
+                        try
+                        {
+                            driversKey.DeleteValue(driverPath);
+                        }
+                        catch
+                        {
+                            fixedEverything = removedBroken = false;
+#if DEBUG
+                                WriteLogLine(ConsoleColor.Red, "x", $"Failed to fix {driversKey} @{driverPath}");
+#endif
                         }
                     }
                     else
-                    {
-                        hasBrokenEntries = broken = true;
-                        if (autofix)
-                        {
-                            RestartIfNotElevated();
-                            try
-                            {
-                                driversKey.DeleteValue(driverPath);
-                            }
-                            catch
-                            {
-                                fixedEverything = removedBroken = false;
-#if DEBUG
-                                WriteLogLine(ConsoleColor.Red, "x", $"Failed to fix {driversKey} @{driverPath}");
-#endif
-                            }
-                        }
-                        else
-                            fixedEverything = removedBroken = false;
-                    }
+                        fixedEverything = removedBroken = false;
                 }
             }
+        }
 
         if ((!hasExplicitDriverReg || removedExplicitDriverReg)
             && (!broken || removedBroken))
@@ -143,7 +144,7 @@ internal static partial class Program
                     var isEnabled = ((int?)layerKey.GetValue(layerPath)) == 0;
                     var isConflicting = false;
 
-                    bool disableLayer(string path)
+                    bool DisableLayer(string path)
                     {
                         hasConflictingLayers = conflicts = true;
                         if (disableLayers)
@@ -204,7 +205,7 @@ internal static partial class Program
                         if (KnownProblematicLayers.TryGetValue(layerJsonName, out var minLayerVersion)
                             && (layerInfo.dllVer == null || minLayerVersion == null || layerInfo.dllVer < minLayerVersion))
                         {
-                            isEnabled = !disableLayer(layerPath);
+                            isEnabled = !DisableLayer(layerPath);
                             isConflicting = true;
                         }
                         else
@@ -212,8 +213,8 @@ internal static partial class Program
                             var idx = -1;
                             for (var i = 0; i < layerInfoList.Count; i++)
                             {
-                                var l = layerInfoList[i];
-                                if (!l.broken && l.enabled && Path.GetFileName(l.path).Equals(layerJsonName, StringComparison.OrdinalIgnoreCase))
+                                if (layerInfoList[i] is { broken: false, enabled: true, path: {Length: >0} path }
+                                    && Path.GetFileName(path).Equals(layerJsonName, StringComparison.OrdinalIgnoreCase))
                                 {
                                     idx = i;
                                     break;
@@ -226,10 +227,9 @@ internal static partial class Program
 #endif
                                 var dupLayer = layerInfoList[idx];
                                 var dupLayerInfo = GetLayerInfo(dupLayer.path)[0];
-                                var curIsNewer = true;
                                 var defVer = new Version(0, 0);
 
-                                curIsNewer = (layerInfo.dllVer ?? defVer) > (dupLayerInfo.dllVer ?? defVer)
+                                var curIsNewer = (layerInfo.dllVer ?? defVer) > (dupLayerInfo.dllVer ?? defVer)
                                              || (layerInfo.apiVer ?? defVer) > (dupLayerInfo.apiVer ?? defVer);
                                 if ((layerInfo.apiVer == null || dupLayerInfo.apiVer == null)
                                     && (layerInfo.dllVer == null || dupLayerInfo.dllVer == null))
@@ -241,7 +241,7 @@ internal static partial class Program
 #if DEBUG
                                     WriteLogLine(ConsoleColor.Cyan, "i", $"    Disabling older layer {layerJsonName}, v{dupLayerInfo.dllVer}, api v{dupLayerInfo.apiVer}");
 #endif
-                                    if (disableLayer(dupLayer.path))
+                                    if (DisableLayer(dupLayer.path))
                                         layerInfoList[idx] = (dupLayer.path, false, true, true);
                                 }
                                 else
@@ -249,7 +249,7 @@ internal static partial class Program
 #if DEBUG
                                     WriteLogLine(ConsoleColor.Cyan, "i", $"    Disabling current layer {layerJsonName}, v{dupLayerInfo.dllVer}, api v{dupLayerInfo.apiVer}");
 #endif
-                                    isEnabled = !disableLayer(layerPath);
+                                    isEnabled = !DisableLayer(layerPath);
                                     isConflicting = true;
                                 }
                             }
@@ -284,10 +284,9 @@ internal static partial class Program
                         if (isBroken)
                         {
                             status = "x";
-                            if (layer == "Implicit")
-                                color = ConsoleColor.Red;
-                            else
-                                color = ConsoleColor.DarkYellow;
+                            color = layer is "Implicit"
+                                ? ConsoleColor.Red
+                                : ConsoleColor.DarkYellow;
                         }
                         else if (isConflicting)
                         {
@@ -324,7 +323,7 @@ internal static partial class Program
                 return defaultResult;
                 
             var regInfo = JsonSerializer.Deserialize<VkRegInfo>(layerContent, JsonOptions);
-            var layers = regInfo?.Layers ?? new List<VkLayer>();
+            var layers = regInfo?.Layers ?? [];
             if (regInfo?.Layer != null)
                 layers.Add(regInfo.Layer);
             if (layers.Count == 0)
@@ -364,7 +363,7 @@ internal static partial class Program
 #if DEBUG
             WriteLogLine(ConsoleColor.Red, "x", e.ToString());
 #endif
-            return new List<(string title, Version dllVer, Version apiVer)> { (layerFilename, libDllVer, apiVer) };
+            return [(layerFilename, libDllVer, apiVer)];
         }
     }
 }

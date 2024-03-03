@@ -6,10 +6,12 @@ namespace VkDiag;
 
 internal static partial class Program
 {
+    // ReSharper disable StringLiteralTypo
     private static readonly List<(string id, string title)> KnownPackages =
     [
         ("Microsoft.D3DMappingLayers_8wekyb3d8bbwe", "OpenCL, OpenGL, and Vulkan Compatibility Pack"),
     ];
+    // ReSharper restore StringLiteralTypo
     
     private static void CheckAppxPackages()
     {

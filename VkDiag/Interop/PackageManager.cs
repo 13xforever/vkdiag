@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Linq;
 using Windows.Win32;
 using Windows.Win32.Foundation;
@@ -58,7 +57,6 @@ public static unsafe class PackageManager
         if (PInvoke.OpenPackageInfoByFullName(packageFullName, out var pkgRef) is WIN32_ERROR.NO_ERROR)
             try
             {
-                var handle = Process.GetCurrentProcess().SafeHandle;
                 uint bufLen = 0;
                 var result = PInvoke.GetPackageInfo(
                     pkgRef,

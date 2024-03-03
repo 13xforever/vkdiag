@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
@@ -17,17 +16,17 @@ internal static partial class Program
 {
     private const string VkDiagVersion = "1.3.2";
 
-    private static bool isAdmin = false;
-    private static bool autofix = false;
-    private static bool clear = false;
-    private static bool disableLayers = false;
-    private static bool ignoreHighPerfCheck = false;
+    private static bool isAdmin;
+    private static bool autofix;
+    private static bool clear;
+    private static bool disableLayers;
+    private static bool ignoreHighPerfCheck;
 
     private static bool everythingIsFine = true;
-    private static bool hasBrokenEntries = false;
-    private static bool hasProperVulkanDrivers = false;
-    private static bool hasExplicitDriverReg = false;
-    private static bool hasConflictingLayers = false;
+    private static bool hasBrokenEntries;
+    private static bool hasProperVulkanDrivers;
+    private static bool hasExplicitDriverReg;
+    private static bool hasConflictingLayers;
     private static bool disabledConflictingLayers = true;
     private static bool removedExplicitDriverReg = true;
     private static bool fixedEverything = true;
@@ -88,37 +87,35 @@ internal static partial class Program
     {
         try
         {
-            using (var client = new HttpClient())
+            using var client = new HttpClient();
+            var curVerParts = VkDiagVersion.Split([' ', '-'], 2);
+            client.DefaultRequestHeaders.UserAgent.Add(new("vkdiag", curVerParts[0]));
+            var responseJson = await client.GetStringAsync("https://api.github.com/repos/13xforever/vkdiag/releases").ConfigureAwait(false);
+            var releaseList = JsonSerializer.Deserialize<List<GitHubReleaseInfo>>(responseJson, JsonOptions);
+            releaseList = releaseList?.OrderByDescending(r => Version.TryParse(r.TagName.TrimStart('v'), out var v) ? v : null).ToList();
+            var latest = releaseList?.FirstOrDefault(r => !r.Prerelease);
+            var latestBeta = releaseList?.FirstOrDefault(r => r.Prerelease);
+            Version.TryParse(curVerParts[0], out var curVer);
+            Version.TryParse(latest?.TagName.TrimStart('v') ?? "0", out var latestVer);
+            var latestBetaParts = latestBeta?.TagName.Split([' ', '-'], 2);
+            Version.TryParse(latestBetaParts?[0] ?? "0", out var latestBetaVer);
+            if (latestVer > curVer || latestVer == curVer && curVerParts.Length > 1)
             {
-                var curVerParts = VkDiagVersion.Split(new[] {' ', '-'}, 2);
-                client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("vkdiag", curVerParts[0]));
-                var responseJson = await client.GetStringAsync("https://api.github.com/repos/13xforever/vkdiag/releases").ConfigureAwait(false);
-                var releaseList = JsonSerializer.Deserialize<List<GitHubReleaseInfo>>(responseJson, JsonOptions);
-                releaseList = releaseList?.OrderByDescending(r => Version.TryParse(r.TagName.TrimStart('v'), out var v) ? v : null).ToList();
-                var latest = releaseList?.FirstOrDefault(r => !r.Prerelease);
-                var latestBeta = releaseList?.FirstOrDefault(r => r.Prerelease);
-                Version.TryParse(curVerParts[0], out var curVer);
-                Version.TryParse(latest?.TagName.TrimStart('v') ?? "0", out var latestVer);
-                var latestBetaParts = latestBeta?.TagName.Split(new[] {' ', '-'}, 2);
-                Version.TryParse(latestBetaParts?[0] ?? "0", out var latestBetaVer);
-                if (latestVer > curVer || latestVer == curVer && curVerParts.Length > 1)
-                {
-                    WriteLogLine(ConsoleColor.DarkYellow, "!", "VkDiag version: " + VkDiagVersion);
-                    WriteLogLine(ConsoleColor.DarkYellow, "!", $"    Newer version available: {latestVer}");
-                }
-                else
-                    WriteLogLine(ConsoleColor.Green, "+", "VkDiag version: " + VkDiagVersion);
-                if (latestBetaVer > latestVer
-                    || (latestVer == latestBetaVer
-                        && curVerParts.Length > 1
-                        && (latestBetaParts?.Length > 1 && latestBetaParts[1] != curVerParts[1]
-                            || (latestBetaParts?.Length ?? 0) == 0)))
-                    WriteLogLine(defaultFgColor, "+", $"    Newer prerelease version available: {latestBetaVer}");
+                WriteLogLine(ConsoleColor.DarkYellow, "!", "VkDiag version: " + VkDiagVersion);
+                WriteLogLine(ConsoleColor.DarkYellow, "!", $"    Newer version available: {latestVer}");
             }
+            else
+                WriteLogLine(ConsoleColor.Green, "+", "VkDiag version: " + VkDiagVersion);
+            if (latestBetaVer > latestVer
+                || (latestVer == latestBetaVer
+                    && curVerParts.Length > 1
+                    && (latestBetaParts?.Length > 1 && latestBetaParts[1] != curVerParts[1]
+                        || (latestBetaParts?.Length ?? 0) == 0)))
+                WriteLogLine(DefaultFgColor, "+", $"    Newer prerelease version available: {latestBetaVer}");
         }
         catch
         {
-            WriteLogLine(defaultFgColor, "+", "VkDiag version: " + VkDiagVersion);
+            WriteLogLine(DefaultFgColor, "+", "VkDiag version: " + VkDiagVersion);
             WriteLogLine(ConsoleColor.DarkYellow, "!", $"    Failed to check for updates");
         }
     }
@@ -142,7 +139,7 @@ internal static partial class Program
             WriteLogLine("Usage:");
             WriteLogLine("  vkdiag [OPTIONS]");
             WriteLogLine("Available options:");
-            lock (theDoor) options.WriteOptionDescriptions(Console.Out);
+            lock (TheDoor) options.WriteOptionDescriptions(Console.Out);
             Environment.Exit(0);
         }
     }
@@ -212,7 +209,7 @@ internal static partial class Program
                 WriteLogLine(ConsoleColor.Cyan, key.ToString(), prompt);
                 validResponses.Add(key);
             }
-            lock (theDoor) Console.Write("Selected option: ");
+            lock (TheDoor) Console.Write("Selected option: ");
             char result;
             do
             {
