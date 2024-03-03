@@ -38,9 +38,7 @@ internal static partial class Program
         {
             if (videoKey == null)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Failed to enumerate GPU drivers");
-                Console.ForegroundColor = defaultFgColor;
+                WriteLogLine(ConsoleColor.Red, "Failed to enumerate GPU drivers");
                 return false;
             }
 
@@ -66,8 +64,8 @@ internal static partial class Program
                             }
                         }
                 }
-            Console.WriteLine();
-            Console.WriteLine($"Found {gpuGuidList.Count} active GPU{(gpuGuidList.Count == 1 ? "" : "s")}:");
+            WriteLogLine();
+            WriteLogLine($"Found {gpuGuidList.Count} active GPU{(gpuGuidList.Count == 1 ? "" : "s")}:");
             foreach (var gpuGuid in inactiveGpuGuidList.Concat(gpuGuidList))
                 using (var gpuKey = videoKey.OpenSubKey(gpuGuid))
                 {

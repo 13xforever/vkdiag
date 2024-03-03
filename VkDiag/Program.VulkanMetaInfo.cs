@@ -38,9 +38,8 @@ internal static partial class Program
         
     private static void CheckVulkanMeta()
     {
-        Console.WriteLine();
-        Console.WriteLine("Vulkan registration information:");
-
+        WriteLogLine();
+        WriteLogLine("Vulkan registration information:");
         var basePaths = new[] {@"SOFTWARE\Khronos\Vulkan", @"SOFTWARE\WOW6432Node\Khronos\Vulkan"};
         var broken = false;
         var removedBroken = true;

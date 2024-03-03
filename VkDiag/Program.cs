@@ -49,7 +49,7 @@ internal static partial class Program
             
         if (!Environment.Is64BitOperatingSystem)
         {
-            Console.WriteLine("Only 64-bit OS is supported");
+            WriteLogLine(ConsoleColor.Red, "Only 64-bit OS is supported");
             Environment.Exit(-1);
         }
 
@@ -61,8 +61,8 @@ internal static partial class Program
         var hasInactiveGpus = CheckGpuDrivers();
         if (hasInactiveGpus && osVer.Major >= 10)
         {
-            Console.WriteLine();
-            Console.WriteLine("User GPU Preferences:");
+            WriteLogLine();
+            WriteLogLine("User GPU Preferences:");
             try
             {
                 if (!HasPerformanceModeProfile())
@@ -138,11 +138,11 @@ internal static partial class Program
 
         if (help)
         {
-            Console.WriteLine("RPCS3 Vulkan diagnostics tool");
-            Console.WriteLine("Usage:");
-            Console.WriteLine("  vkdiag [OPTIONS]");
-            Console.WriteLine("Available options:");
-            options.WriteOptionDescriptions(Console.Out);
+            WriteLogLine("RPCS3 Vulkan diagnostics tool");
+            WriteLogLine("Usage:");
+            WriteLogLine("  vkdiag [OPTIONS]");
+            WriteLogLine("Available options:");
+            lock (theDoor) options.WriteOptionDescriptions(Console.Out);
             Environment.Exit(0);
         }
     }
@@ -158,9 +158,9 @@ internal static partial class Program
             return;
             
         if (requireElevation)
-            Console.WriteLine("Restarting with elevated permissions...");
+            WriteLogLine("Restarting with elevated permissions...");
         else
-            Console.WriteLine("Restarting...");
+            WriteLogLine("Restarting...");
         var args = "";
         if (autofix)
             args += " -f";
@@ -203,16 +203,16 @@ internal static partial class Program
             menu.Add(('n', "Do nothing and exit (default)"));
             var validResponses = new HashSet<char>{'\r', '\n'};
                 
-            Console.WriteLine();
-            Console.WriteLine("Remember to screenshot or copy this screen content for support.");
-            Console.WriteLine();
-            Console.WriteLine("There are some issues, what would you like to do?");
+            WriteLogLine();
+            WriteLogLine("Remember to screenshot or copy this screen content for support.");
+            WriteLogLine();
+            WriteLogLine("There are some issues, what would you like to do?");
             foreach (var (key, prompt) in menu)
             {
                 WriteLogLine(ConsoleColor.Cyan, key.ToString(), prompt);
                 validResponses.Add(key);
             }
-            Console.Write("Selected option: ");
+            lock (theDoor) Console.Write("Selected option: ");
             char result;
             do
             {
@@ -247,13 +247,13 @@ internal static partial class Program
         }
         
         if (everythingIsFine)
-            Console.WriteLine("Everything seems to be fine.");
+            WriteLogLine("Everything seems to be fine.");
         else
-            Console.WriteLine("There are some issues that require manual checks and/or fixes.");
-        Console.WriteLine();
-        Console.WriteLine("Remember to screenshot or copy this screen content for support.");
-        Console.WriteLine();
-        Console.WriteLine("Press any key to exit the tool...");
+            WriteLogLine("There are some issues that require manual checks and/or fixes.");
+        WriteLogLine();
+        WriteLogLine("Remember to screenshot or copy this screen content for support.");
+        WriteLogLine();
+        WriteLogLine("Press any key to exit the tool...");
         Console.ReadKey();
         Environment.Exit(0);
     }
