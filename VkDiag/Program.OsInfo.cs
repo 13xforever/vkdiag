@@ -110,6 +110,7 @@ internal static partial class Program
             var vulkanLoaderLibs = Directory.GetFiles(Environment.GetFolderPath(Environment.SpecialFolder.System), "vulkan-?.dll", SearchOption.TopDirectoryOnly);
             if (vulkanLoaderLibs.Length == 0)
             {
+                everythingIsFine = false;
                 WriteLogLine(ConsoleColor.Red, "x", "No Vulkan Loader library was found; please reinstall latest GPU drivers");
             }
             else

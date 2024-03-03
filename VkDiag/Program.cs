@@ -15,7 +15,7 @@ namespace VkDiag;
 
 internal static partial class Program
 {
-    private const string VkDiagVersion = "1.3.1";
+    private const string VkDiagVersion = "1.3.2";
 
     private static bool isAdmin = false;
     private static bool autofix = false;
@@ -23,6 +23,7 @@ internal static partial class Program
     private static bool disableLayers = false;
     private static bool ignoreHighPerfCheck = false;
 
+    private static bool everythingIsFine = true;
     private static bool hasBrokenEntries = false;
     private static bool hasProperVulkanDrivers = false;
     private static bool hasExplicitDriverReg = false;
@@ -244,7 +245,11 @@ internal static partial class Program
             Restart(false);
             Environment.Exit(0);
         }
-        Console.WriteLine("Everything seems to be fine.");
+        
+        if (everythingIsFine)
+            Console.WriteLine("Everything seems to be fine.");
+        else
+            Console.WriteLine("There are some issues that require manual checks and/or fixes.");
         Console.WriteLine();
         Console.WriteLine("Remember to screenshot or copy this screen content for support.");
         Console.WriteLine();

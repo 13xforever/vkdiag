@@ -31,6 +31,7 @@ internal static partial class Program
         }
         if (found is { Count: > 0 })
         {
+            everythingIsFine = false;
             Console.WriteLine();
             WriteLogLine(ConsoleColor.DarkYellow, "!", "Potentially incompatible software:");
             foreach (var pkg in found)

@@ -207,9 +207,12 @@ internal static partial class Program
                             if (hasDate)
                             {
                                 if (driverDateTime < DateTime.UtcNow.AddMonths(-2))
-                                    WriteLogLine(ConsoleColor.DarkYellow, "!", "    Please update your video driver");
+                                    WriteLogLine(ConsoleColor.DarkYellow, "!", "    Please consider updating your video driver");
                                 else if (driverDateTime < DateTime.UtcNow.AddMonths(-6))
+                                {
+                                    everythingIsFine = false;
                                     WriteLogLine(ConsoleColor.Red, "x", "    Please update your video driver");
+                                }
                             }
                         }
                         if (vkReg)
