@@ -169,12 +169,13 @@ internal static partial class Program
                     }
 
                     // device name with overall status
-                    var color = ConsoleColor.Green;
+                    var color = ConsoleColor.White;
                     var status = "+";
                     if ((!broken || removedBroken) && !brokenDriverRegistration)
                     {
                         if (vkReg)
                         {
+                            color = ConsoleColor.Green;
                             status = "v";
                             vulkanGpuGuidList.Add(gpuGuid);
                         }
