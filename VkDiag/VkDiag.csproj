@@ -13,14 +13,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ILRepack" Version="2.0.18" GeneratePathProperty="true">
+    <PackageReference Include="ILRepack" Version="2.0.27" GeneratePathProperty="true">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.49-beta">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Mono.Options" Version="6.12.0.148" />
-    <PackageReference Include="System.Text.Json" Version="7.0.3" />
+    <PackageReference Include="System.Text.Json" Version="8.0.2" />
   </ItemGroup>
 
   <Target Name="MergeLibs" AfterTargets="Build" Condition="'$(Configuration)'=='Release'">
