@@ -14,7 +14,7 @@ namespace VkDiag;
 
 internal static partial class Program
 {
-    private const string VkDiagVersion = "1.3.2";
+    private const string VkDiagVersion = "1.3.3";
 
     private static bool isAdmin;
     private static bool autofix;
@@ -57,7 +57,12 @@ internal static partial class Program
         if (osVer.Major >= 10)
             try { CheckAppxPackages(); } catch { }
 
-        var hasInactiveGpus = CheckGpuDrivers();
+        var (hasInactiveGpus, hasVulkanGpus) = CheckGpuDrivers();
+        if (!hasVulkanGpus)
+        {
+            everythingIsFine = false;
+            WriteLogLine(ConsoleColor.Red, "x", "No GPUs registered with Vulkan support");
+        }
         if (hasInactiveGpus && osVer.Major >= 10)
         {
             WriteLogLine();

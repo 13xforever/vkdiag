@@ -25,10 +25,11 @@ internal static partial class Program
     ];
     // ReSharper restore StringLiteralTypo
 
-    private static bool CheckGpuDrivers()
+    private static (bool hasInactive, bool hasVulkan) CheckGpuDrivers()
     {
         var gpuGuidList = new HashSet<string>();
         var inactiveGpuGuidList = new HashSet<string>();
+        var vulkanGpuGuidList = new HashSet<string>();
         var driverVkEntries = new[]
         {
             "VulkanDriverName", "VulkanDriverNameWoW",
@@ -41,7 +42,7 @@ internal static partial class Program
             if (videoKey == null)
             {
                 WriteLogLine(ConsoleColor.Red, "Failed to enumerate GPU drivers");
-                return false;
+                return (false, false);
             }
 
             foreach (var gpuGuid in videoKey.GetSubKeyNames())
@@ -158,7 +159,7 @@ internal static partial class Program
                                 {
                                     fixedEverything = removedBroken = false;
 #if DEBUG
-                                            WriteLogLine(ConsoleColor.Red, "x", $"Failed to fix {outputKey} @{entry}");
+                                    WriteLogLine(ConsoleColor.Red, "x", $"Failed to fix {outputKey} @{entry}");
 #endif
                                 }
                             }
@@ -173,7 +174,10 @@ internal static partial class Program
                     if ((!broken || removedBroken) && !brokenDriverRegistration)
                     {
                         if (vkReg)
+                        {
                             status = "v";
+                            vulkanGpuGuidList.Add(gpuGuid);
+                        }
                     }
                     else
                     {
@@ -227,6 +231,6 @@ internal static partial class Program
             }
         }
 
-        return inactiveGpuGuidList.Count > 0;
+        return (inactiveGpuGuidList.Count > 0, vulkanGpuGuidList.Count > 0);
     }
 }
