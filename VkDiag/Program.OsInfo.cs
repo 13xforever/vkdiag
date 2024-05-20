@@ -201,7 +201,10 @@ internal static partial class Program
                     case int v when v < 24000: return (OsSupportStatus.Prerelease, $"11 Dev Build {windowsVersion.Build}");
                     case int v when v < 25000: return (OsSupportStatus.Prerelease, $"11 ??? Build {windowsVersion.Build}");
                     case int v when v < 26052: return (OsSupportStatus.Prerelease, $"11 Canary Build {windowsVersion.Build}");
-                    case int v when v < 27000: return (OsSupportStatus.Prerelease, $"11 Dev/Canary Build {windowsVersion.Build}");
+                    case int v when v < 26120: return (OsSupportStatus.Prerelease, $"11 Dev/Canary Build {windowsVersion.Build}");
+                    case 26120: return (OsSupportStatus.Prerelease, $"11 24H2 Dev Build {windowsVersion.Build}");
+                    case int v when v < 27000: return (OsSupportStatus.Prerelease, $"11 Canary Build {windowsVersion.Build}");
+                    
                     default: return (OsSupportStatus.Prerelease, $"11 Unknown/private Build {windowsVersion.Build}");
                 }
             default:
