@@ -193,7 +193,7 @@ internal static partial class Program
                     // https://learn.microsoft.com/en-us/lifecycle/products/windows-11-home-and-pro
                     case int v when v < 21390: return (OsSupportStatus.Deprecated, $"10 Dev Build {v}");
                     case int v when v < 22000: return (OsSupportStatus.Deprecated, $"11 21H2 Internal Build {v}");
-                    case 22000: return (OsSupportStatus.Supported, "11 21H2");
+                    case 22000: return (OsSupportStatus.Deprecated, "11 21H2");
                     case int v when v < 22621: return (OsSupportStatus.Deprecated, $"11 22H2 Beta Build {v}");
                     case 22621: return (OsSupportStatus.Supported, "11 22H2");
                     case 22631: return (OsSupportStatus.Supported, "11 23H2");
@@ -201,6 +201,7 @@ internal static partial class Program
                     case int v when v < 24000: return (OsSupportStatus.Prerelease, $"11 Dev Build {windowsVersion.Build}");
                     case int v when v < 25000: return (OsSupportStatus.Prerelease, $"11 ??? Build {windowsVersion.Build}");
                     case int v when v < 26052: return (OsSupportStatus.Prerelease, $"11 Canary Build {windowsVersion.Build}");
+                    case 26100: return (OsSupportStatus.Prerelease, $"11 24H2");
                     case int v when v < 26120: return (OsSupportStatus.Prerelease, $"11 Dev/Canary Build {windowsVersion.Build}");
                     case 26120: return (OsSupportStatus.Prerelease, $"11 24H2 Dev Build {windowsVersion.Build}");
                     case int v when v < 27000: return (OsSupportStatus.Prerelease, $"11 Canary Build {windowsVersion.Build}");
