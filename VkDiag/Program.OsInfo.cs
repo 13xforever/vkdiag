@@ -142,76 +142,69 @@ internal static partial class Program
     }
 
     private static (OsSupportStatus status, string name) GetWindowsInfo(Version windowsVersion)
-    {
-        switch (windowsVersion.Major)
+        => windowsVersion.Major switch
         {
-            case 5:
-                switch (windowsVersion.Minor)
-                {
-                    case 0: return (OsSupportStatus.Deprecated, "2000");
-                    case 1: return (OsSupportStatus.Deprecated, "XP");
-                    case 2: return (OsSupportStatus.Deprecated, "XP x64");
-                    default: return (OsSupportStatus.Unknown, null);
-                }
-            case 6:
-                switch (windowsVersion.Minor)
-                {
-                    case 0: return (OsSupportStatus.Deprecated, "Vista");
-                    case 1: return (OsSupportStatus.Deprecated, "7");
-                    case 2: return (OsSupportStatus.Deprecated, "8");
-                    case 3: return (OsSupportStatus.Deprecated, "8.1");
-                    default: return (OsSupportStatus.Unknown, null);
-                }
-            case 10:
-                switch (windowsVersion.Build)
-                {
-                    // https://learn.microsoft.com/en-us/lifecycle/products/windows-10-home-and-pro
-                    case int v when v < 10240: return (OsSupportStatus.Deprecated, $"10 TH1 Build {v}");
-                    case 10240: return (OsSupportStatus.Deprecated, "10 1507"); // 2017-05-09
-                    case int v when v < 10586: return (OsSupportStatus.Deprecated, $"10 TH2 Build {v}");
-                    case 10586: return (OsSupportStatus.Deprecated, "10 1511"); // 2017-10-10
-                    case int v when v < 14393: return (OsSupportStatus.Deprecated, $"10 RS1 Build {v}");
-                    case 14393: return (OsSupportStatus.Deprecated, "10 1607"); // 2018-04-10
-                    case int v when v < 15063: return (OsSupportStatus.Deprecated, $"10 RS2 Build {v}");
-                    case 15063: return (OsSupportStatus.Deprecated, "10 1703"); // 2018-10-09
-                    case int v when v < 16299: return (OsSupportStatus.Deprecated, $"10 RS3 Build {v}");
-                    case 16299: return (OsSupportStatus.Deprecated, "10 1709"); // 2019-04-09
-                    case int v when v < 17134: return (OsSupportStatus.Deprecated, $"10 RS4 Build {v}");
-                    case 17134: return (OsSupportStatus.Deprecated, "10 1803"); // 2019-11-12
-                    case int v when v < 17763: return (OsSupportStatus.Deprecated, $"10 RS5 Build {v}");
-                    case 17763: return (OsSupportStatus.Deprecated, "10 1809"); // 2020-11-10
-                    case int v when v < 18362: return (OsSupportStatus.Deprecated, $"10 19H1 Build {v}");
-                    case 18362: return (OsSupportStatus.Deprecated, "10 1903"); // 2020-12-08
-                    case 18363: return (OsSupportStatus.Deprecated, "10 1909"); // 2021-05-11
-                    case int v when v < 19041: return (OsSupportStatus.Deprecated, $"10 20H1 Build {v}");
-                    case 19041: return (OsSupportStatus.Deprecated, "10 2004"); // 2021-12-14
-                    case 19042: return (OsSupportStatus.Deprecated, "10 20H2"); // 2022-05-10
-                    case 19043: return (OsSupportStatus.Deprecated, "10 21H1"); // 2022-12-13
-                    case 19044: return (OsSupportStatus.Deprecated, "10 21H2"); // 2023-06-13
-                    case 19045: return (OsSupportStatus.Supported, "10 22H2"); // 2025-10-14
-
-                    // https://learn.microsoft.com/en-us/lifecycle/products/windows-11-home-and-pro
-                    case int v when v < 21390: return (OsSupportStatus.Deprecated, $"10 Dev Build {v}");
-                    case int v when v < 22000: return (OsSupportStatus.Deprecated, $"11 21H2 Internal Build {v}");
-                    case 22000: return (OsSupportStatus.Deprecated, "11 21H2"); // 2023-10-10
-                    case int v when v < 22621: return (OsSupportStatus.Deprecated, $"11 22H2 Beta Build {v}");
-                    case 22621: return (OsSupportStatus.Supported, "11 22H2"); // 2024-10-08
-                    case 22631: return (OsSupportStatus.Supported, "11 23H2"); // 2025-11-11
-                    case int v when v < 23000: return (OsSupportStatus.Deprecated, $"11 Beta Build {windowsVersion.Build}");
-                    case int v when v < 24000: return (OsSupportStatus.Deprecated, $"11 Dev Build {windowsVersion.Build}");
-                    case int v when v < 25000: return (OsSupportStatus.Deprecated, $"11 ??? Build {windowsVersion.Build}");
-                    case int v when v < 26052: return (OsSupportStatus.Deprecated, $"11 Canary Build {windowsVersion.Build}");
-                    case 26100: return (OsSupportStatus.Prerelease, "11 24H2");
-                    case int v when v < 26120: return (OsSupportStatus.Prerelease, $"11 Dev/Canary Build {windowsVersion.Build}");
-                    case 26120: return (OsSupportStatus.Prerelease, $"11 24H2 Dev Build {windowsVersion.Build}");
-                    case int v when v < 27000: return (OsSupportStatus.Prerelease, $"11 Canary Build {windowsVersion.Build}");
-                    
-                    default: return (OsSupportStatus.Prerelease, $"11 Unknown/private Build {windowsVersion.Build}");
-                }
-            default:
-                return (OsSupportStatus.Unknown, null);
-        }
-    }
+            5 => windowsVersion.Minor switch
+            {
+                0 => (OsSupportStatus.Deprecated, "2000"),
+                1 => (OsSupportStatus.Deprecated, "XP"),
+                2 => (OsSupportStatus.Deprecated, "XP x64"),
+                _ => (OsSupportStatus.Unknown, null)
+            },
+            6 => windowsVersion.Minor switch
+            {
+                0 => (OsSupportStatus.Deprecated, "Vista"),
+                1 => (OsSupportStatus.Deprecated, "7"),
+                2 => (OsSupportStatus.Deprecated, "8"),
+                3 => (OsSupportStatus.Deprecated, "8.1"),
+                _ => (OsSupportStatus.Unknown, null)
+            },
+            10 => windowsVersion.Build switch
+            {
+                // https://learn.microsoft.com/en-us/windows/release-health/supported-versions-windows-client
+                // https://learn.microsoft.com/en-us/lifecycle/products/windows-10-home-and-pro
+                var v and < 10240 => (OsSupportStatus.Deprecated, $"10 TH1 Build {v}"),
+                10240 => (OsSupportStatus.Deprecated, "10 1507"), // 2017-05-09
+                var v and < 10586 => (OsSupportStatus.Deprecated, $"10 TH2 Build {v}"),
+                10586 => (OsSupportStatus.Deprecated, "10 1511"), // 2017-10-10
+                var v and < 14393 => (OsSupportStatus.Deprecated, $"10 RS1 Build {v}"),
+                14393 => (OsSupportStatus.Deprecated, "10 1607"), // 2018-04-10
+                var v and < 15063 => (OsSupportStatus.Deprecated, $"10 RS2 Build {v}"),
+                15063 => (OsSupportStatus.Deprecated, "10 1703"), // 2018-10-09
+                var v and < 16299 => (OsSupportStatus.Deprecated, $"10 RS3 Build {v}"),
+                16299 => (OsSupportStatus.Deprecated, "10 1709"), // 2019-04-09
+                var v and < 17134 => (OsSupportStatus.Deprecated, $"10 RS4 Build {v}"),
+                17134 => (OsSupportStatus.Deprecated, "10 1803"), // 2019-11-12
+                var v and < 17763 => (OsSupportStatus.Deprecated, $"10 RS5 Build {v}"),
+                17763 => (OsSupportStatus.Deprecated, "10 1809"), // 2020-11-10
+                var v and < 18362 => (OsSupportStatus.Deprecated, $"10 19H1 Build {v}"),
+                18362 => (OsSupportStatus.Deprecated, "10 1903"), // 2020-12-08
+                18363 => (OsSupportStatus.Deprecated, "10 1909"), // 2021-05-11
+                var v and < 19041 => (OsSupportStatus.Deprecated, $"10 20H1 Build {v}"),
+                19041 => (OsSupportStatus.Deprecated, "10 2004"), // 2021-12-14
+                19042 => (OsSupportStatus.Deprecated, "10 20H2"), // 2022-05-10
+                19043 => (OsSupportStatus.Deprecated, "10 21H1"), // 2022-12-13
+                19044 => (OsSupportStatus.Deprecated, "10 21H2"), // 2023-06-13
+                19045 => (OsSupportStatus.Supported, "10 22H2"), // 2025-10-14
+                // https://learn.microsoft.com/en-us/lifecycle/products/windows-11-home-and-pro
+                var v and < 21390 => (OsSupportStatus.Deprecated, $"10 Dev Build {v}"),
+                var v and < 22000 => (OsSupportStatus.Deprecated, $"11 21H2 Internal Build {v}"),
+                22000 => (OsSupportStatus.Deprecated, "11 21H2"), // 2023-10-10
+                var v and < 22621 => (OsSupportStatus.Deprecated, $"11 22H2 Beta Build {v}"),
+                22621 => (OsSupportStatus.Deprecated, "11 22H2"), // 2024-10-08
+                22631 => (OsSupportStatus.Supported, "11 23H2"), // 2025-11-11
+                < 23000 => (OsSupportStatus.Deprecated, $"11 Beta Build {windowsVersion.Build}"),
+                < 24000 => (OsSupportStatus.Deprecated, $"11 Dev Build {windowsVersion.Build}"),
+                < 25000 => (OsSupportStatus.Deprecated, $"11 ??? Build {windowsVersion.Build}"),
+                < 26052 => (OsSupportStatus.Deprecated, $"11 Canary Build {windowsVersion.Build}"),
+                26100 => (OsSupportStatus.Supported, "11 24H2"), //2025-10-13
+                < 26120 => (OsSupportStatus.Prerelease, $"11 Dev/Canary Build {windowsVersion.Build}"),
+                26120 => (OsSupportStatus.Prerelease, $"11 24H2 Dev Build {windowsVersion.Build}"),
+                < 27000 => (OsSupportStatus.Prerelease, $"11 Canary Build {windowsVersion.Build}"),
+                _ => (OsSupportStatus.Prerelease, $"11 Unknown/private Build {windowsVersion.Build}")
+            },
+            _ => (OsSupportStatus.Unknown, null)
+        };
 
     private static bool HasPerformanceModeProfile()
     {
