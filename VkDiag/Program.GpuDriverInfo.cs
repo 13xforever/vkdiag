@@ -98,7 +98,7 @@ internal static partial class Program
                     foreach (var output in outputList)
                     {
                         using var outputKey = gpuKey.OpenSubKey(output, autofix);
-                        if (outputKey == null)
+                        if (outputKey is null)
                             continue;
 
                         if (string.IsNullOrEmpty(driverVer))
@@ -116,7 +116,7 @@ internal static partial class Program
                         foreach (var entry in driverVkEntries)
                         {
                             var entryValue = outputKey.GetValue(entry);
-                            if (entryValue == null)
+                            if (entryValue is null)
                                 continue;
 
                             var fixedList = new List<string>();
@@ -148,9 +148,9 @@ internal static partial class Program
                                 RestartIfNotElevated();
                                 try
                                 {
-                                    if (fixedList.Count == 0)
+                                    if (fixedList.Count is 0)
                                         outputKey.DeleteValue(entry);
-                                    else if (fixedList.Count == 1)
+                                    else if (fixedList.Count is 1)
                                         outputKey.SetValue(entry, fixedList[0]);
                                     else
                                         outputKey.SetValue(entry, fixedList.ToArray());

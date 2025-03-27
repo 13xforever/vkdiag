@@ -199,7 +199,8 @@ internal static partial class Program
                 < 26052 => (OsSupportStatus.Deprecated, $"11 Canary Build {windowsVersion.Build}"),
                 26100 => (OsSupportStatus.Supported, "11 24H2"), //2025-10-13
                 < 26120 => (OsSupportStatus.Prerelease, $"11 Dev/Canary Build {windowsVersion.Build}"),
-                26120 => (OsSupportStatus.Prerelease, $"11 24H2 Dev Build {windowsVersion.Build}"),
+                26120 => (OsSupportStatus.Prerelease, $"11 24H2 Beta Build {windowsVersion.Build}"),
+                26200 => (OsSupportStatus.Prerelease, $"11 24H2 Dev Build {windowsVersion.Build}"),
                 < 27000 => (OsSupportStatus.Prerelease, $"11 Canary Build {windowsVersion.Build}"),
                 _ => (OsSupportStatus.Prerelease, $"11 Unknown/private Build {windowsVersion.Build}")
             },
