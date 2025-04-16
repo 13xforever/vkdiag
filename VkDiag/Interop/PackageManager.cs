@@ -30,19 +30,17 @@ public static unsafe class PackageManager
             return [];
         
         var pkgFullNameList = new PWSTR[count];
-        var charBuf = new char[bufferLength];
+        Span<char> charBuf = new char[bufferLength];
         uint props = 0;
         fixed (PWSTR* pPkgFullNames = pkgFullNameList)
-        fixed (char* pBuf = charBuf)
         {
-            var pkgNamesBuf = new PWSTR(pBuf);
             result = PInvoke.FindPackagesByPackageFamily(
                 packageFamily,
                 PInvoke.PACKAGE_FILTER_HEAD,
                 ref count,
                 pPkgFullNames,
                 ref bufferLength,
-                pkgNamesBuf,
+                charBuf,
                 &props
             );
         }
@@ -102,9 +100,10 @@ public static unsafe class PackageManager
         Span<char> staticBuf = stackalloc char[512];
         var source = $"@{{{packageFullName}?ms-resource://Microsoft.D3DMappingLayers/Resources/AppStoreName}}";
         fixed (char* pBuf = staticBuf)
+        fixed (char* pSource = source)
         {
             var output = new PWSTR(pBuf);
-            if (PInvoke.SHLoadIndirectString(source, output, (uint)staticBuf.Length).Succeeded)
+            if (PInvoke.SHLoadIndirectString(new(pSource), output, (uint)staticBuf.Length).Succeeded)
                 return output.ToString();
         }
         return defaultName;
