@@ -185,7 +185,7 @@ internal static partial class Program
                 19042 => (OsSupportStatus.Deprecated, "10 20H2"), // 2022-05-10
                 19043 => (OsSupportStatus.Deprecated, "10 21H1"), // 2022-12-13
                 19044 => (OsSupportStatus.Deprecated, "10 21H2"), // 2023-06-13
-                19045 => (OsSupportStatus.Supported, "10 22H2"), // 2025-10-14
+                19045 => (OsSupportStatus.Deprecated, "10 22H2"), // 2025-10-14
                 // https://learn.microsoft.com/en-us/lifecycle/products/windows-11-home-and-pro
                 var v and < 21390 => (OsSupportStatus.Deprecated, $"10 Dev Build {v}"),
                 var v and < 22000 => (OsSupportStatus.Deprecated, $"11 21H2 Internal Build {v}"),
@@ -197,10 +197,10 @@ internal static partial class Program
                 < 24000 => (OsSupportStatus.Deprecated, $"11 Dev Build {windowsVersion.Build}"),
                 < 25000 => (OsSupportStatus.Deprecated, $"11 ??? Build {windowsVersion.Build}"),
                 < 26052 => (OsSupportStatus.Deprecated, $"11 Canary Build {windowsVersion.Build}"),
-                26100 => (OsSupportStatus.Supported, "11 24H2"), //2025-10-13
+                26100 => (OsSupportStatus.Supported, "11 24H2"), //2026-10-13
                 < 26120 => (OsSupportStatus.Prerelease, $"11 Dev/Canary Build {windowsVersion.Build}"),
                 26120 => (OsSupportStatus.Prerelease, $"11 24H2 Beta Build {windowsVersion.Build}"),
-                26200 => (OsSupportStatus.Prerelease, "11 25H2"),
+                26200 => (OsSupportStatus.Prerelease, "11 25H2"), //2027-10-12
                 26220 => (OsSupportStatus.Prerelease, $"11 24H2 Dev Build {windowsVersion.Build}"),
                 < 28000 => (OsSupportStatus.Prerelease, $"11 Canary Build {windowsVersion.Build}"),
                 _ => (OsSupportStatus.Prerelease, $"11 Unknown/private Build {windowsVersion.Build}")
