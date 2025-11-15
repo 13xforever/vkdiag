@@ -13,8 +13,8 @@ It checks general system information, GPU driver registration info, and [vulkan 
 Please note that Linux has separate driver load mechanism, and is not supported by this tool. You may use verification and troubleshooting sections of [Arch Wiki article](https://wiki.archlinux.org/title/Vulkan) instead. 
 
 # Building
-Project is targeting legacy .NET Framework 4.8 that should be installed by default on all supported versions of Windows.
+Project is targeting .NET 10.
 
-You may need to install [dotnet sdk](https://dotnet.microsoft.com/en-us/download) or [Visual Studio Build Tools](https://visualstudio.microsoft.com/downloads/) to use with some IDE (VS Code, JetBrains Raider, Visual Studio, etc).
+You will need to install [dotnet sdk](https://dotnet.microsoft.com/en-us/download) or [Visual Studio Build Tools](https://visualstudio.microsoft.com/downloads/) to use with some IDE (VS Code, JetBrains Raider, Visual Studio, etc).
 
 If you have `dotnet` available in console, you can use `dotnet build` command to build the project.
