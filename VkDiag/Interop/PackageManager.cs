@@ -23,7 +23,7 @@ public static unsafe class PackageManager
             default,
             default
         );
-        if (result is not WIN32_ERROR.ERROR_INSUFFICIENT_BUFFER)
+        if (result is not WIN32_ERROR.ERROR_INSUFFICIENT_BUFFER and not WIN32_ERROR.NO_ERROR)
             throw new Win32Exception((int)result, "Failed to query package list");
         
         if (count is 0)
@@ -31,19 +31,16 @@ public static unsafe class PackageManager
         
         var pkgFullNameList = new PWSTR[count];
         Span<char> charBuf = new char[bufferLength];
-        uint props = 0;
-        fixed (PWSTR* pPkgFullNames = pkgFullNameList)
-        {
-            result = PInvoke.FindPackagesByPackageFamily(
-                packageFamily,
-                PInvoke.PACKAGE_FILTER_HEAD,
-                ref count,
-                pPkgFullNames,
-                ref bufferLength,
-                charBuf,
-                &props
-            );
-        }
+        Span<uint> props = new uint[count];
+        result = PInvoke.FindPackagesByPackageFamily(
+            packageFamily,
+            PInvoke.PACKAGE_FILTER_HEAD,
+            ref count,
+            pkgFullNameList,
+            ref bufferLength,
+            charBuf,
+            props
+        );
         if (result is not WIN32_ERROR.NO_ERROR)
             throw new Win32Exception((int)result, "Failed to retrieve package names");
         
