@@ -15,6 +15,10 @@ internal static partial class Program
     
     private static void CheckAppxPackages()
     {
+        
+        if (!OperatingSystem.IsWindowsVersionAtLeast(8, 1))
+            return;
+        
         var found = new List<(string name, string version)>();
         foreach (var pkg in KnownPackages)
         {
@@ -28,16 +32,15 @@ internal static partial class Program
                     found.Add((appStoreName, ver));
                 }
             }
-            catch
-            {}
+            catch {}
         }
-        if (found is { Count: > 0 })
-        {
-            everythingIsFine = false;
-            WriteLogLine();
-            WriteLogLine(ConsoleColor.DarkYellow, "!", "Potentially incompatible software:");
-            foreach (var pkg in found)
-                WriteLogLine(ConsoleColor.DarkYellow, "!", $"    {pkg.name}{pkg.version}");
-        }
+        if (found is not { Count: > 0 })
+            return;
+        
+        everythingIsFine = false;
+        WriteLogLine();
+        WriteLogLine(ConsoleColor.DarkYellow, "!", "Potentially incompatible software:");
+        foreach (var pkg in found)
+            WriteLogLine(ConsoleColor.DarkYellow, "!", $"    {pkg.name}{pkg.version}");
     }
 }

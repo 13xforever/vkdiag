@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Management;
 using System.Reflection;
 using Microsoft.Win32;
+using WmiLight;
 
 namespace VkDiag;
 
@@ -21,10 +21,9 @@ internal static partial class Program
         Version osVer = default;
         try
         {
-            var scope = ManagementPath.DefaultPath.ToString();
-            using var searcher = new ManagementObjectSearcher(scope, "SELECT Name FROM CIM_Processor");
-            using var collection = searcher.Get();
-            foreach (var cpuInfo in collection)
+            using var wmiConnection = new WmiConnection();
+            var query = wmiConnection.CreateQuery("SELECT Name FROM CIM_Processor");
+            foreach (var cpuInfo in query)
             {
                 var cpuName = cpuInfo.GetPropertyValue("Name") as string;
                 WriteLogLine(ConsoleColor.Cyan, "i", "CPU: " + cpuName);
@@ -37,17 +36,16 @@ internal static partial class Program
             WriteLogLine(ConsoleColor.Red, "x", e.ToString());
         }
 #else
-            catch
-            {
-                WriteLogLine(ConsoleColor.DarkYellow, "x", "Failed to get CPU information");
-            }
+        catch
+        {
+            WriteLogLine(ConsoleColor.DarkYellow, "x", "Failed to get CPU information");
+        }
 #endif
         try
         {
-            var scope = ManagementPath.DefaultPath.ToString();
-            using var searcher = new ManagementObjectSearcher(scope, "SELECT Caption, Version FROM CIM_OperatingSystem");
-            using var collection = searcher.Get();
-            foreach (var osi in collection)
+            using var wmiConnection = new WmiConnection();
+            var query = wmiConnection.CreateQuery("SELECT Caption, Version FROM CIM_OperatingSystem");
+            foreach (var osi in query)
             {
                 var osName = osi.GetPropertyValue("Caption") as string;
                 var osVersion = osi.GetPropertyValue("Version") as string ?? "";
@@ -97,10 +95,10 @@ internal static partial class Program
             WriteLogLine(ConsoleColor.Red, "x", e.ToString());
         }
 #else
-            catch
-            {
-                WriteLogLine(ConsoleColor.DarkYellow, "x", "Failed to get OS information");
-            }
+        catch
+        {
+            WriteLogLine(ConsoleColor.DarkYellow, "x", "Failed to get OS information");
+        }
 #endif      
         try
         {
