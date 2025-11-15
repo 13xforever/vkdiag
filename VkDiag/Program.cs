@@ -7,7 +7,6 @@ using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Mono.Options;
 using VkDiag.POCOs;
 
 namespace VkDiag;
@@ -53,9 +52,8 @@ internal static partial class Program
         }
 
         await CheckVkDiagVersionAsync().ConfigureAwait(false);
-        var osVer = CheckOs();
-        if (osVer.Major >= 10)
-            try { CheckAppxPackages(); } catch { }
+        CheckOs();
+        CheckAppxPackages();
 
         var (hasInactiveGpus, hasVulkanGpus) = CheckGpuDrivers();
         if (!hasVulkanGpus)
@@ -63,7 +61,7 @@ internal static partial class Program
             everythingIsFine = false;
             WriteLogLine(ConsoleColor.Red, "x", "No GPUs registered with Vulkan support");
         }
-        if (hasInactiveGpus && osVer.Major >= 10)
+        if (hasInactiveGpus && OperatingSystem.IsWindowsVersionAtLeast(10))
         {
             WriteLogLine();
             WriteLogLine("User GPU Preferences:");
@@ -122,30 +120,6 @@ internal static partial class Program
         {
             WriteLogLine(DefaultFgColor, "+", "VkDiag version: " + VkDiagVersion);
             WriteLogLine(ConsoleColor.DarkYellow, "!", $"    Failed to check for updates");
-        }
-    }
-
-    private static void GetOptions(string[] args)
-    {
-        var help = false;
-        var options = new OptionSet
-        {
-            {"?|h|help", _ => help = true},
-            {"i|ignore-high-performance-check", _ => ignoreHighPerfCheck = true},
-            {"f|fix", "Remove broken Vulkan entries", _ => autofix = true},
-            {"c|clear-explicit-driver-reg", "Remove explicit Vulkan driver registration", _ => clear = true},
-            {"d|disable-incompatible-layers", "Disable potentially incompatible implicit Vulkan layers", _ => disableLayers = true}
-        };
-        options.Parse(args);
-
-        if (help)
-        {
-            WriteLogLine("RPCS3 Vulkan diagnostics tool");
-            WriteLogLine("Usage:");
-            WriteLogLine("  vkdiag [OPTIONS]");
-            WriteLogLine("Available options:");
-            lock (TheDoor) options.WriteOptionDescriptions(Console.Out);
-            Environment.Exit(0);
         }
     }
 

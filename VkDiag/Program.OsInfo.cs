@@ -15,9 +15,8 @@ internal static partial class Program
         ["1"] = new(1, 2, 141, 0),
     };
 
-    private static Version CheckOs()
+    private static void CheckOs()
     {
-        Version osVer = default;
         try
         {
             using var wmiConnection = new WmiConnection();
@@ -53,7 +52,7 @@ internal static partial class Program
                 var status = "+";
                 var verStatus = "+";
                 var osStatus = OsSupportStatus.Unknown;
-                if (Version.TryParse(osVersion, out osVer))
+                if (Version.TryParse(osVersion, out var osVer))
                 {
                     (osStatus, var osVerName) = GetWindowsInfo(osVer);
                     if (!string.IsNullOrEmpty(osVerName))
@@ -135,7 +134,6 @@ internal static partial class Program
         {
             WriteLogLine(ConsoleColor.DarkYellow, "x", "Failed to get system Vulkan loader info");
         }
-        return osVer;
     }
 
     private static (OsSupportStatus status, string name) GetWindowsInfo(Version windowsVersion)
