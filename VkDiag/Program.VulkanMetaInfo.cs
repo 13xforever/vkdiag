@@ -11,12 +11,6 @@ namespace VkDiag;
 
 internal static partial class Program
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = new SnakeCasePolicy(),
-        WriteIndented = true,
-    };
-
     // ReSharper disable StringLiteralTypo
     private static readonly Dictionary<string, Version> KnownProblematicLayers = new()
     {
@@ -322,7 +316,7 @@ internal static partial class Program
             if (string.IsNullOrEmpty(layerContent))
                 return defaultResult;
                 
-            var regInfo = JsonSerializer.Deserialize<VkRegInfo>(layerContent, JsonOptions);
+            var regInfo = JsonSerializer.Deserialize(layerContent, VkRegInfoSerializer.Default.VkRegInfo);
             var layers = regInfo?.Layers ?? [];
             if (regInfo?.Layer != null)
                 layers.Add(regInfo.Layer);

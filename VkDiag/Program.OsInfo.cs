@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using Microsoft.Win32;
 using WmiLight;
 
@@ -208,7 +207,7 @@ internal static partial class Program
 
     private static bool HasPerformanceModeProfile()
     {
-        if (Assembly.GetEntryAssembly()?.Location is not { } imagePath)
+        if (Environment.ProcessPath is not { Length: >0 } imagePath)
             return false;
         
         var basePath = @"Software\Microsoft\DirectX\UserGpuPreferences";

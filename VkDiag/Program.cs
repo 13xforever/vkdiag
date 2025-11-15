@@ -96,8 +96,8 @@ internal static partial class Program
             var curVerParts = VkDiagVersion.Split([' ', '-'], 2);
             client.DefaultRequestHeaders.UserAgent.Add(new("vkdiag", curVerParts[0]));
             var responseJson = await client.GetStringAsync("https://api.github.com/repos/13xforever/vkdiag/releases").ConfigureAwait(false);
-            var releaseList = JsonSerializer.Deserialize<List<GitHubReleaseInfo>>(responseJson, JsonOptions);
-            releaseList = releaseList?.OrderByDescending(r => Version.TryParse(r.TagName.TrimStart('v'), out var v) ? v : null).ToList();
+            var releaseList = JsonSerializer.Deserialize(responseJson, GithubReleaseSerializer.Default.GitHubReleaseInfoArray);
+            releaseList = releaseList?.OrderByDescending(r => Version.TryParse(r.TagName.TrimStart('v'), out var v) ? v : null).ToArray();
             var latest = releaseList?.FirstOrDefault(r => !r.Prerelease);
             var latestBeta = releaseList?.FirstOrDefault(r => r.Prerelease);
             Version.TryParse(curVerParts[0], out var curVer);
