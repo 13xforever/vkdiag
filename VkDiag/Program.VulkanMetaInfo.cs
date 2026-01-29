@@ -22,6 +22,7 @@ internal static partial class Program
     {
         ["MirillisActionVulkanLayer.json"] = null,
         ["ow-vulkan-overlay64.json"] = null,
+        ["ow-graphics-vulkan64.json"] = null,
         ["fpsmonvk64.json"] = null,
         ["fpsmonvk32.json"] = null,
         ["hudsightvk64.json"] = null,
