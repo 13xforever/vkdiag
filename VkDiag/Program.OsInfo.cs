@@ -192,7 +192,7 @@ internal static partial class Program
                 22000 => (OsSupportStatus.Deprecated, "11 21H2"), // 2023-10-10
                 var v and < 22621 => (OsSupportStatus.Deprecated, $"11 22H2 Beta Build {v}"),
                 22621 => (OsSupportStatus.Deprecated, "11 22H2"), // 2024-10-08
-                22631 => (OsSupportStatus.Supported, "11 23H2"), // 2025-11-11
+                22631 => (OsSupportStatus.Deprecated, "11 23H2"), // 2025-11-11
                 < 23000 => (OsSupportStatus.Deprecated, $"11 Beta Build {windowsVersion.Build}"),
                 < 24000 => (OsSupportStatus.Deprecated, $"11 Dev Build {windowsVersion.Build}"),
                 < 25000 => (OsSupportStatus.Deprecated, $"11 ??? Build {windowsVersion.Build}"),
@@ -201,7 +201,8 @@ internal static partial class Program
                 < 26120 => (OsSupportStatus.Prerelease, $"11 Dev/Canary Build {windowsVersion.Build}"),
                 26120 => (OsSupportStatus.Prerelease, $"11 24H2 Beta Build {windowsVersion.Build}"),
                 26200 => (OsSupportStatus.Supported, "11 25H2"), //2027-10-12
-                26220 => (OsSupportStatus.Prerelease, $"11 25H2 Dev/Beta Build {windowsVersion.Build}"),
+                26220 => (OsSupportStatus.Prerelease, $"11 25H2 Beta Build {windowsVersion.Build}"),
+                26300 => (OsSupportStatus.Prerelease, $"11 25H2 Dev Build {windowsVersion.Build}"),
                 < 28000 => (OsSupportStatus.Prerelease, $"11 Canary Build {windowsVersion.Build}"),
                 _ => (OsSupportStatus.Prerelease, $"11 Unknown/private Build {windowsVersion.Build}")
             },
