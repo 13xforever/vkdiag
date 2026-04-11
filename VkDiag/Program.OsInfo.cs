@@ -202,8 +202,12 @@ internal static partial class Program
                 26120 => (OsSupportStatus.Prerelease, $"11 24H2 Beta Build {windowsVersion.Build}"),
                 26200 => (OsSupportStatus.Supported, "11 25H2"), //2027-10-12
                 26220 => (OsSupportStatus.Prerelease, $"11 25H2 Beta Build {windowsVersion.Build}"),
-                26300 => (OsSupportStatus.Prerelease, $"11 25H2 Dev Build {windowsVersion.Build}"),
+                26300 => (OsSupportStatus.Prerelease, $"11 25H2 Dev/Experimental Build {windowsVersion.Build}"),
                 < 28000 => (OsSupportStatus.Prerelease, $"11 Canary Build {windowsVersion.Build}"),
+                < 28021 => (OsSupportStatus.Prerelease, $"11 26H1 Canary Build {windowsVersion.Build}"),
+                < 29500 => (OsSupportStatus.Prerelease, $"11 26H1 Experimental Build {windowsVersion.Build}"),
+                < 29566 => (OsSupportStatus.Prerelease, $"11 26H2 Canary Build {windowsVersion.Build}"),
+                < 30000 => (OsSupportStatus.Prerelease, $"11 Future Platforms Build {windowsVersion.Build}"),
                 _ => (OsSupportStatus.Prerelease, $"11 Unknown/private Build {windowsVersion.Build}")
             },
             _ => (OsSupportStatus.Unknown, null)
