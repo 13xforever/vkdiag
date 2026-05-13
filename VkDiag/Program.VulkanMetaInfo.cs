@@ -31,6 +31,7 @@ internal static partial class Program
         ["playclawvk32.json"] = null,
         ["VK_LAYER_FCAT_DT_overlay_JSON_x64.json"] = null,
         ["VK_LAYER_FCAT_DT_overlay_JSON_x86.json"] = null,
+        ["CheatHappensVulkanLayer_x64.json"] = null,
         ["bdcamvk64.json"] = new(1, 1, 0, 111),
         ["bdcamvk32.json"] = new(1, 1, 0, 111),
         ["obs-vulkan64.json"] = new(1, 2, 2, 0),
