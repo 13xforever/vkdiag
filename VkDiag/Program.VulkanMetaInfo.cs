@@ -36,6 +36,8 @@ internal static partial class Program
         ["bdcamvk32.json"] = new(1, 1, 0, 111),
         ["obs-vulkan64.json"] = new(1, 2, 2, 0),
         ["obs-vulkan32.json"] = new(1, 2, 2, 0),
+        ["medal-vulkan32.json"] = null,
+        ["medal-vulkan64.json"] = null,
     };
     // ReSharper restore StringLiteralTypo
         
