@@ -14,7 +14,7 @@ namespace VkDiag;
 
 internal static partial class Program
 {
-    private const string VkDiagVersion = "1.3.16";
+    private const string VkDiagVersion = "1.3.17";
 
     private static bool isAdmin;
     private static bool autofix;

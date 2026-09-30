@@ -186,6 +186,7 @@ internal static partial class Program
                 19043 => (OsSupportStatus.Deprecated, "10 21H1"), // 2022-12-13
                 19044 => (OsSupportStatus.Deprecated, "10 21H2"), // 2023-06-13
                 19045 => (OsSupportStatus.Deprecated, "10 22H2"), // 2025-10-14
+                
                 // https://learn.microsoft.com/en-us/lifecycle/products/windows-11-home-and-pro
                 var v and < 21390 => (OsSupportStatus.Deprecated, $"10 Dev Build {v}"),
                 var v and < 22000 => (OsSupportStatus.Deprecated, $"11 21H2 Internal Build {v}"),
@@ -197,14 +198,18 @@ internal static partial class Program
                 < 24000 => (OsSupportStatus.Deprecated, $"11 Dev Build {windowsVersion.Build}"),
                 < 25000 => (OsSupportStatus.Deprecated, $"11 ??? Build {windowsVersion.Build}"),
                 < 26052 => (OsSupportStatus.Deprecated, $"11 Canary Build {windowsVersion.Build}"),
-                26100 => (OsSupportStatus.Supported, "11 24H2"), //2026-10-13
+                26100 => (OsSupportStatus.Deprecated, "11 24H2"), //2026-10-13
                 < 26120 => (OsSupportStatus.Prerelease, $"11 Dev/Canary Build {windowsVersion.Build}"),
                 26120 => (OsSupportStatus.Prerelease, $"11 24H2 Beta Build {windowsVersion.Build}"),
                 26200 => (OsSupportStatus.Supported, "11 25H2"), //2027-10-12
                 26220 => (OsSupportStatus.Prerelease, $"11 25H2 Beta Build {windowsVersion.Build}"),
-                26300 => (OsSupportStatus.Prerelease, $"11 25H2 Dev/Experimental Build {windowsVersion.Build}"),
-                < 28000 => (OsSupportStatus.Prerelease, $"11 Canary Build {windowsVersion.Build}"),
+                26300 => (OsSupportStatus.Supported, "11 26H2"), //2028-10-10
+                < 26400 => (OsSupportStatus.Prerelease, $"11 26H2 Experimental Build {windowsVersion.Build}"),
+                < 28000 => (OsSupportStatus.Prerelease, $"11 26H2 Canary Build {windowsVersion.Build}"),
+                28000 => (OsSupportStatus.Supported, "11 26H1"), //2028-03-14
                 < 28020 => (OsSupportStatus.Prerelease, $"11 26H1 Canary Build {windowsVersion.Build}"),
+                28020 => (OsSupportStatus.Prerelease, $"11 26H1 Beta Build {windowsVersion.Build}"),
+                28120 => (OsSupportStatus.Prerelease, $"11 26H1 Experimental Build {windowsVersion.Build}"),
                 < 29500 => (OsSupportStatus.Prerelease, $"11 26H1 Experimental Build {windowsVersion.Build}"),
                 < 29576 => (OsSupportStatus.Prerelease, $"11 26H2 Canary Build {windowsVersion.Build}"),
                 < 30000 => (OsSupportStatus.Prerelease, $"11 Future Platforms Build {windowsVersion.Build}"),
